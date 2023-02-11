@@ -25,6 +25,8 @@ type SavedLinks struct {
 }
 
 func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	fmt.Println(r.Method)
+	fmt.Println(r.URL.String())
 	// проверяем, каким методом получили запрос
 	switch r.Method {
 	case "POST":
@@ -43,7 +45,7 @@ func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// возвращаем ответ с кодом 201
 		w.WriteHeader(201)
 		// пишем в тело ответа сокращенный URL
-		fmt.Print(w, sToken)
+		fmt.Fprint(w, sToken)
 
 	case "GET":
 		shortURL := r.URL.String()
