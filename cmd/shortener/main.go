@@ -25,7 +25,6 @@ type SavedLinks struct {
 }
 
 func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(r.Method)
 	fmt.Println(r.URL.String())
 	// проверяем, каким методом получили запрос
 	switch r.Method {
@@ -45,6 +44,7 @@ func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		// возвращаем ответ с кодом 201
 		w.WriteHeader(201)
 		// пишем в тело ответа сокращенный URL
+		sToken = "http://localhost:8080/" + sToken
 		fmt.Fprint(w, sToken)
 
 	case "GET":
