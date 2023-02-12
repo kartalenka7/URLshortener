@@ -22,6 +22,7 @@ func randStringBytes(n int) string {
 
 type SavedLinks struct {
 	LinksMap map[string]string
+	gToken   string
 }
 
 func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -37,7 +38,7 @@ func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		// получаем токен
-		sToken := randStringBytes(10)
+		sToken := s.gToken
 		url := string(b)
 		// записываем связку короткий url - длинный url
 		s.LinksMap[sToken] = url
@@ -62,6 +63,7 @@ func main() {
 	// маршрутизация запросов обработчику
 	handler1 := SavedLinks{
 		LinksMap: savedLinks,
+		gToken:   randStringBytes(10),
 	}
 	server := &http.Server{
 		Handler: handler1,
