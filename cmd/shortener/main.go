@@ -74,6 +74,6 @@ func main() {
 	r := chi.NewRouter()
 	r.Get("/", handler1.ServeHTTP)
 	// Запуск сервера
-	log.Fatal(":8080", r)
+	log.Fatal("localhost:8080", r)
 
 }
