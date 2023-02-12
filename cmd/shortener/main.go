@@ -7,6 +7,8 @@ import (
 	"math/rand"
 	"net/http"
 	"strings"
+
+	"github.com/go-chi/chi/v5"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -32,6 +34,7 @@ func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	case "POST":
 		//читаем строку URL из body
 		b, err := io.ReadAll(r.Body)
+		url := string(b)
 		// обрабатываем ошибку
 		if err != nil {
 			http.Error(w, err.Error(), 500)
@@ -39,7 +42,6 @@ func (s SavedLinks) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		}
 		// получаем токен
 		sToken := s.gToken
-		url := string(b)
 		// записываем связку короткий url - длинный url
 		s.LinksMap[sToken] = url
 		// возвращаем ответ с кодом 201
@@ -65,11 +67,13 @@ func main() {
 		LinksMap: savedLinks,
 		gToken:   randStringBytes(10),
 	}
-	server := &http.Server{
+	/*server := &http.Server{
 		Handler: handler1,
 		Addr:    "localhost:8080",
-	}
+	}*/
+	r := chi.NewRouter()
+	r.Get("/", handler1.ServeHTTP)
 	// Запуск сервера
-	log.Fatal(server.ListenAndServe())
+	log.Fatal(":8080", r)
 
 }
