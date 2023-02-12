@@ -15,7 +15,7 @@ func TestPOST(t *testing.T) {
 		statusCode int
 		URL        string
 	}
-	tests_post := []struct {
+	testsPost := []struct {
 		name    string
 		links   SavedLinks
 		want    want
@@ -37,7 +37,7 @@ func TestPOST(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests_post {
+	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodPost, tt.request, nil)
 			w := httptest.NewRecorder()
@@ -65,7 +65,7 @@ func TestGET(t *testing.T) {
 		statusCode int
 		URL        string
 	}
-	tests_get := []struct {
+	testsGet := []struct {
 		name    string
 		links   SavedLinks
 		want    want
@@ -86,7 +86,7 @@ func TestGET(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests_get {
+	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
 			request := httptest.NewRequest(http.MethodGet, tt.request, nil)
 			w := httptest.NewRecorder()
@@ -96,6 +96,7 @@ func TestGET(t *testing.T) {
 			h := http.HandlerFunc(handler1.ServeHTTP)
 			h(w, request)
 			result := w.Result()
+			defer result.Body.Close()
 			assert.Equal(t, tt.want.statusCode, result.StatusCode)
 			URL := result.Header.Get("Location")
 			assert.Equal(t, tt.want.URL, URL)
