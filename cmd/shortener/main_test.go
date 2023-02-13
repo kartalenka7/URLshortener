@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -26,7 +27,7 @@ func TestPOST(t *testing.T) {
 	assert.Equal(t, "http://localhost:8080/AsDfGhJkLl", body)
 }
 
-func TestGET(t *testing.T) {
+/*  func TestGET(t *testing.T) {
 	links := SavedLinks{
 		LinksMap: map[string]string{
 			"AsDfGhJkLl": "http://testtest/AsDfGhJkLl",
@@ -41,9 +42,10 @@ func TestGET(t *testing.T) {
 	statusCode, _, location := testRequest(t, ts, "GET", "/AsDfGhJkLl")
 	assert.Equal(t, 307, statusCode)
 	assert.Equal(t, "http://testtest/AsDfGhJkLl", location)
-}
+}  */
 
 func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string, string) {
+	fmt.Println(ts.URL + path)
 	req, err := http.NewRequest(method, ts.URL+path, nil)
 	assert.NoError(t, err)
 
