@@ -64,15 +64,15 @@ func main() {
 	fmt.Println(string(body))
 
 	//запрос методом GET
-	shortURL := string(body)
-	URL, urlParseErr := url.Parse(shortURL)
-	fmt.Println(URL)
-	if urlParseErr != nil {
-		fmt.Println(urlParseErr)
-		os.Exit(2)
-	}
+	/* 	shortURL := string(body)
+	   	URL, urlParseErr := url.Parse(shortURL)
+	   	fmt.Println(URL)
+	   	if urlParseErr != nil {
+	   		fmt.Println(urlParseErr)
+	   		os.Exit(2)
+	   	} */
 
-	/* shortURL = strings.TrimSuffix(shortURL, "\n")
+	shortURL := string(body)
 	req, err := http.NewRequest(http.MethodGet, shortURL, nil)
 	if err != nil {
 		fmt.Println(err)
@@ -88,6 +88,6 @@ func main() {
 	fmt.Println(resp.Header)
 	fmt.Println("Длинный URL", longURL) // печатаем код ответа
 
-	defer resp.Body.Close() */
+	defer resp.Body.Close()
 
 }

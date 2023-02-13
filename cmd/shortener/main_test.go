@@ -4,13 +4,61 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"os"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestPOST(t *testing.T) {
+	links := SavedLinks{
+		LinksMap: map[string]string{
+			" ": " ",
+		},
+		gToken: "AsDfGhJkLl",
+	}
+
+	r := NewRouter(links)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	statusCode, body, _ := testRequest(t, ts, "POST", "/")
+	assert.Equal(t, 201, statusCode)
+	assert.Equal(t, "http://localhost:8080/AsDfGhJkLl", body)
+}
+
+func TestGET(t *testing.T) {
+	links := SavedLinks{
+		LinksMap: map[string]string{
+			"AsDfGhJkLl": "http://testtest/AsDfGhJkLl",
+		},
+		gToken: " ",
+	}
+
+	r := NewRouter(links)
+	ts := httptest.NewServer(r)
+	defer ts.Close()
+
+	statusCode, _, location := testRequest(t, ts, "GET", "/AsDfGhJkLl")
+	assert.Equal(t, 307, statusCode)
+	assert.Equal(t, "http://testtest/AsDfGhJkLl", location)
+}
+
+func testRequest(t *testing.T, ts *httptest.Server, method, path string) (int, string, string) {
+	req, err := http.NewRequest(method, ts.URL+path, nil)
+	assert.NoError(t, err)
+
+	resp, err := http.DefaultClient.Do(req)
+	assert.NoError(t, err)
+
+	respBody, err := io.ReadAll(resp.Body)
+	assert.NoError(t, err)
+
+	defer resp.Body.Close()
+
+	return resp.StatusCode, string(respBody), string(resp.Header.Get("Location"))
+}
+
+/* func TestPOST(t *testing.T) {
 	type want struct {
 		statusCode int
 		URL        string
@@ -102,4 +150,4 @@ func TestGET(t *testing.T) {
 			assert.Equal(t, tt.want.URL, URL)
 		})
 	}
-}
+} */
