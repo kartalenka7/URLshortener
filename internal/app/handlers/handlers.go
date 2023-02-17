@@ -10,7 +10,7 @@ import (
 )
 
 var (
-	paramId        = "id"
+	paramID        = "id"
 	headerLocation = "Location"
 )
 
@@ -47,7 +47,7 @@ func NewRouter(s storage.StorageLinks, gToken string) chi.Router {
 			fmt.Fprint(rw, sToken)
 		})
 		r.Get("/{id}", func(rw http.ResponseWriter, req *http.Request) {
-			shortURL := chi.URLParam(req, paramId)
+			shortURL := chi.URLParam(req, paramID)
 			longURL, err := s.GetLongURL(shortURL)
 			if err != nil {
 				http.Error(rw, err.Error(), http.StatusInternalServerError)

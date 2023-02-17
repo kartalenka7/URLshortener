@@ -56,7 +56,7 @@ func TestEndpoints(t *testing.T) {
 			gToken: "AsDfGhJkLl",
 			want: want{
 				statusCode: http.StatusInternalServerError,
-				URLshort:   "Link already exists\n",
+				URLshort:   "link already exists\n",
 				err:        "",
 			},
 			method:  http.MethodPost,

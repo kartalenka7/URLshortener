@@ -18,7 +18,7 @@ func (s StorageLinks) AddLink(gToken string, longURL string) error {
 	var err error
 	_, ok := s.LinksMap[gToken]
 	if ok {
-		err = errors.New("Link already exists")
+		err = errors.New("link already exists")
 	} else {
 		s.LinksMap[gToken] = longURL
 	}
@@ -29,7 +29,7 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
 	longURL, ok := s.LinksMap[sToken]
 	if !ok {
-		err = errors.New("Link is not found")
+		err = errors.New("link is not found")
 	}
 	return longURL, err
 }
