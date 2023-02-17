@@ -1,13 +1,35 @@
 package storage
 
+import "errors"
+
 // слой хранилища
 
-type Repository interface {
-	AddLink(gToken string, longURL string) error
-	GetLongURL(sToken string) (string, error)
+type StorageLinks struct {
+	LinksMap map[string]string
 }
 
-type SavedLinks struct {
-	LinksMap map[string]string
-	gToken   string
+func GetStorage(linksMap map[string]string) *StorageLinks {
+	return &StorageLinks{
+		LinksMap: linksMap,
+	}
+}
+
+func (s StorageLinks) AddLink(gToken string, longURL string) error {
+	var err error
+	_, ok := s.LinksMap[gToken]
+	if ok {
+		err = errors.New("Link already exists")
+	} else {
+		s.LinksMap[gToken] = longURL
+	}
+	return err
+}
+
+func (s StorageLinks) GetLongURL(sToken string) (string, error) {
+	var err error
+	longURL, ok := s.LinksMap[sToken]
+	if !ok {
+		err = errors.New("Link is not found")
+	}
+	return longURL, err
 }
