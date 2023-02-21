@@ -1,35 +1,44 @@
 package storage
 
-import "errors"
+import (
+	"errors"
+
+	utils "example.com/shortener/cmd/utils"
+)
 
 // слой хранилища
 
 type StorageLinks struct {
-	LinksMap map[string]string
+	linksMap map[string]string
 }
 
-func GetStorage(linksMap map[string]string) *StorageLinks {
+func NewStorage() *StorageLinks {
 	return &StorageLinks{
-		LinksMap: linksMap,
+		linksMap: make(map[string]string),
 	}
 }
 
-func (s StorageLinks) AddLink(gToken string, longURL string) error {
+func (s StorageLinks) GetStorageLen() int {
+	return len(s.linksMap)
+}
+
+func (s StorageLinks) AddLink(longURL string) (string, error) {
 	var err error
-	_, ok := s.LinksMap[gToken]
+	gToken := utils.RandStringBytes(10)
+	_, ok := s.linksMap[gToken]
 	if ok {
-		err = errors.New("link already exists")
-	} else {
-		s.LinksMap[gToken] = longURL
+		return "", errors.New("link already exists")
 	}
-	return err
+
+	s.linksMap[gToken] = longURL
+	return gToken, err
 }
 
 func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
-	longURL, ok := s.LinksMap[sToken]
+	longURL, ok := s.linksMap[sToken]
 	if !ok {
-		err = errors.New("link is not found")
+		return "", errors.New("link is not found")
 	}
 	return longURL, err
 }

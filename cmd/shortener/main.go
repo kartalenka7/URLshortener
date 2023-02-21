@@ -4,7 +4,6 @@ import (
 	"log"
 	"net/http"
 
-	utils "example.com/shortener/cmd/utils"
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
 )
@@ -14,7 +13,7 @@ var (
 )
 
 func main() {
-	storage := storage.GetStorage(make(map[string]string))
-	router := handlers.NewRouter(*storage, utils.RandStringBytes(10))
+	storage := storage.NewStorage()
+	router := handlers.NewRouter(storage)
 	log.Fatal(http.ListenAndServe(localAddr, router))
 }

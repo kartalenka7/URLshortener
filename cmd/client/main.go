@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 )
 
 func main() {
@@ -64,16 +66,13 @@ func main() {
 	fmt.Println(string(body))
 
 	//запрос методом GET
-	/* 	shortURL := string(body)
-	   	URL, urlParseErr := url.Parse(shortURL)
-	   	fmt.Println(URL)
-	   	if urlParseErr != nil {
-	   		fmt.Println(urlParseErr)
-	   		os.Exit(2)
-	   	} */
-
 	shortURL := string(body)
-	req, err := http.NewRequest(http.MethodGet, shortURL, nil)
+	// конструируем контекст с Timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// функция cancel() позволяет при необходимости остановить операции
+	defer cancel()
+	req, err := http.NewRequestWithContext(ctx, http.MethodGet, shortURL, nil)
+	//req, err := http.NewRequest(http.MethodGet, shortURL, nil)
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(1)
@@ -83,11 +82,10 @@ func main() {
 		fmt.Println(err)
 		os.Exit(1)
 	}
+	defer resp.Body.Close()
 	fmt.Println("Статус-код ", resp.Status)
 	longURL := resp.Header.Get("Location")
 	fmt.Println(resp.Header)
 	fmt.Println("Длинный URL", longURL) // печатаем код ответа
-
-	defer resp.Body.Close()
 
 }

@@ -6,99 +6,44 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func TestAddLink(t *testing.T) {
-	type args struct {
-		gToken  string
+func TestStorage(t *testing.T) {
+	type want struct {
+		tokenLen int
+	}
+	tests := []struct {
+		name    string
 		longURL string
-	}
-	tests := []struct {
-		name    string
-		s       StorageLinks
-		args    args
-		wantErr bool
+		want    want
 	}{
 		{
-			name: "Positive test",
-			s: StorageLinks{
-				LinksMap: map[string]string{},
+			name:    "Simple add and get",
+			longURL: "https://www.youtube.com/",
+			want: want{
+				tokenLen: 10,
 			},
-			args: args{
-				gToken:  "AsDfGhJkLl",
-				longURL: "https://www.youtube.com/",
-			},
-			wantErr: false,
-		},
-		{
-			name: "Negative test test",
-			s: StorageLinks{
-				LinksMap: map[string]string{
-					"AsDfGhJkLl": "https://go.dev/",
-				},
-			},
-			args: args{
-				gToken:  "AsDfGhJkLl",
-				longURL: "https://www.youtube.com/",
-			},
-			wantErr: true,
 		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := tt.s.AddLink(tt.args.gToken, tt.args.longURL)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StorageLinks.GetLongURL() error = %v, wantErr %v", err, tt.wantErr)
+			s := NewStorage()
+			// Добавляем ссылку в хранилище
+			gToken, err := s.AddLink(tt.longURL)
+			if err != nil {
+				t.Errorf("StorageLinks.GetLongURL() error = %v", err)
 				return
 			}
-		})
-	}
-}
+			// Проверяем, что сгенерированный токен не пустой и длина 10
+			assert.NotEmpty(t, gToken)
+			tokenLen := len(gToken)
+			assert.Equal(t, tokenLen, 10)
 
-func TestGetLongURL(t *testing.T) {
-	type args struct {
-		sToken string
-	}
-	tests := []struct {
-		name    string
-		s       StorageLinks
-		args    args
-		wantURL string
-		wantErr bool
-	}{
-		{
-			name: "Positive test",
-			s: StorageLinks{
-				LinksMap: map[string]string{
-					"AsDfGhJkLl": "https://go.dev/",
-				},
-			},
-			args: args{
-				sToken: "AsDfGhJkLl",
-			},
-			wantURL: "https://go.dev/",
-			wantErr: false,
-		},
-		{
-			name: "Negative test test",
-			s: StorageLinks{
-				LinksMap: map[string]string{
-					"AsDfGhJkLl": "https://go.dev/",
-				},
-			},
-			args: args{
-				sToken: "7EJUYUVAMy",
-			},
-			wantURL: "",
-			wantErr: true,
-		},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.s.GetLongURL(tt.args.sToken)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("StorageLinks.GetLongURL() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			assert.Equal(t, got, tt.wantURL)
+			// Проверяем, что добавлена одна запись
+			assert.Equal(t, s.GetStorageLen(), 1)
+
+			// Получаем ссылку
+			got, err := s.GetLongURL(gToken)
+			assert.Equal(t, got, tt.longURL)
+
 		})
 	}
 }

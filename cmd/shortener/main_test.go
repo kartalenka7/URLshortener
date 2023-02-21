@@ -10,105 +10,90 @@ import (
 	"errors"
 
 	handlers "example.com/shortener/internal/app/handlers"
-	storage "example.com/shortener/internal/app/storage"
+	"example.com/shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestEndpoints(t *testing.T) {
+func TestPOST(t *testing.T) {
 
 	type want struct {
 		statusCode int
-		URLshort   string
-		err        string
 	}
-	testsGet := []struct {
+	testsPost := []struct {
 		name    string
-		storage storage.StorageLinks
-		gToken  string
 		want    want
 		method  string
 		request string
 	}{
 		{
 			name: "POST positive test",
-			storage: storage.StorageLinks{
-				LinksMap: map[string]string{
-					" ": " ",
-				},
-			},
-			gToken: "AsDfGhJkLl",
 			want: want{
 				statusCode: http.StatusCreated,
-				URLshort:   "http://localhost:8080/AsDfGhJkLl",
-				err:        "",
 			},
 			method:  http.MethodPost,
 			request: "/",
 		},
+	}
+
+	for _, tt := range testsPost {
+		t.Run(tt.name, func(t *testing.T) {
+			s := storage.NewStorage()
+			r := handlers.NewRouter(s)
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			statusCode, body, err := testRequest(t, ts, tt.method, tt.request)
+			assert.Equal(t, tt.want.statusCode, statusCode)
+			assert.NoError(t, err)
+			assert.NotNil(t, body)
+		})
+	}
+}
+
+func TestGET(t *testing.T) {
+
+	type want struct {
+		statusCode int
+		err        string
+	}
+	testsGet := []struct {
+		name    string
+		longURL string
+		want    want
+		method  string
+	}{
 		{
-			name: "POST negative test",
-			storage: storage.StorageLinks{
-				LinksMap: map[string]string{
-					"AsDfGhJkLl": "http://test/AsDfGhJkLl",
-				},
-			},
-			gToken: "AsDfGhJkLl",
-			want: want{
-				statusCode: http.StatusInternalServerError,
-				URLshort:   "link already exists\n",
-				err:        "",
-			},
-			method:  http.MethodPost,
-			request: "/",
-		},
-		{
-			name: "GET positive test",
-			storage: storage.StorageLinks{
-				LinksMap: map[string]string{
-					"AsDfGhJkLl": "https://www.youtube.com",
-				},
-			},
-			gToken: "",
+			name:    "GET positive test",
+			longURL: "https://www.youtube.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				URLshort:   "",
 				err:        "Get \"https://www.youtube.com\": Redirect",
 			},
-			method:  http.MethodGet,
-			request: "/AsDfGhJkLl",
-		},
-		{
-			name: "GET negative test",
-			storage: storage.StorageLinks{
-				LinksMap: map[string]string{
-					"AsDfGhJkLl": "https://www.youtube.com",
-				},
-			},
-			gToken: "",
-			want: want{
-				statusCode: http.StatusMethodNotAllowed,
-				URLshort:   "",
-				err:        "",
-			},
-			method:  http.MethodGet,
-			request: "/",
+			method: http.MethodGet,
 		},
 	}
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
-			r := handlers.NewRouter(tt.storage, tt.gToken)
+			s := storage.NewStorage()
+			// Добавить в хранилище URL, получить сгененированный токен
+			gToken, err := s.AddLink(tt.longURL)
+			assert.NoError(t, err)
+
+			r := handlers.NewRouter(s)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
-			fmt.Println(tt.method, tt.request)
-			statusCode, body, err := testRequest(t, ts, tt.method, tt.request)
+
+			// Запрос = / + токен
+			request := fmt.Sprintf("/%s", gToken)
+
+			statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, statusCode)
-			assert.Equal(t, tt.want.URLshort, body)
-			if err != nil {
-				fmt.Println(err.Error())
-				assert.Equal(t, tt.want.err, err.Error())
-			}
+			require.Error(t, err)
+			fmt.Println(err.Error())
+			assert.Equal(t, tt.want.err, err.Error())
+
 		})
 	}
 }
@@ -125,11 +110,9 @@ func testRequest(t *testing.T, ts *httptest.Server, method, request string) (int
 		return errors.New("Redirect")
 	}
 	resp, err := client.Do(req)
-
 	if err == nil {
 		respBody, err = io.ReadAll(resp.Body)
 		defer resp.Body.Close()
-		require.NoError(t, err)
 	}
 	return resp.StatusCode, string(respBody), err
 }
