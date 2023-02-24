@@ -178,6 +178,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 		fmt.Println(err.Error())
 	}
 	body, err := io.ReadAll(resp.Body)
+	defer resp.Body.Close()
 	require.NoError(t, err)
 	return resp.StatusCode, body, resp.Header.Get("Content-Type"), err
 }
