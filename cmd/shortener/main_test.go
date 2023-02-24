@@ -1,6 +1,8 @@
 package main
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -87,7 +89,6 @@ func TestGET(t *testing.T) {
 
 			// Запрос = / + токен
 			request := fmt.Sprintf("/%s", gToken)
-
 			statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, statusCode)
 			require.Error(t, err)
@@ -98,13 +99,51 @@ func TestGET(t *testing.T) {
 	}
 }
 
+func TestJSON(t *testing.T) {
+
+	type want struct {
+		statusCode  int
+		contentType string
+	}
+	testsPost := []struct {
+		name    string
+		want    want
+		method  string
+		request string
+	}{
+		{
+			name: "POST JSON test",
+			want: want{
+				statusCode:  http.StatusCreated,
+				contentType: "application/json",
+			},
+			method:  http.MethodPost,
+			request: "/api/shorten",
+		},
+	}
+
+	for _, tt := range testsPost {
+		t.Run(tt.name, func(t *testing.T) {
+			s := storage.NewStorage()
+			r := handlers.NewRouter(s)
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			statusCode, body, contentType, err := jsonRequest(t, ts, tt.method, tt.want.contentType, tt.request)
+			assert.Equal(t, tt.want.statusCode, statusCode)
+			assert.Equal(t, tt.want.contentType, contentType)
+			assert.NoError(t, err)
+			assert.NotNil(t, body)
+		})
+	}
+}
+
 func testRequest(t *testing.T, ts *httptest.Server, method, request string) (int, string, error) {
 	var respBody []byte
 	var err error
 
 	req, err := http.NewRequest(method, ts.URL+request, nil)
 	require.NoError(t, err)
-
 	client := new(http.Client)
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 		return errors.New("Redirect")
@@ -115,4 +154,30 @@ func testRequest(t *testing.T, ts *httptest.Server, method, request string) (int
 		defer resp.Body.Close()
 	}
 	return resp.StatusCode, string(respBody), err
+}
+
+func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request string) (int, []byte, string, error) {
+	var err error
+
+	bodyStr := struct {
+		LongUrl string `json:"url"`
+	}{
+		LongUrl: "https://www.youtube.com",
+	}
+	buf := bytes.NewBuffer([]byte{})
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(bodyStr)
+	req, err := http.NewRequest(method, ts.URL+request, buf)
+	require.NoError(t, err)
+
+	req.Header.Set("Content-Type", contentType)
+	client := new(http.Client)
+	resp, err := client.Do(req)
+	if err != nil {
+		fmt.Println(err.Error())
+	}
+	body, err := io.ReadAll(resp.Body)
+	require.NoError(t, err)
+	return resp.StatusCode, body, resp.Header.Get("Content-Type"), err
 }

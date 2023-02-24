@@ -17,8 +17,9 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 	r := chi.NewRouter()
 	// создадим суброутер, который будет содержать две функции
 	r.Route("/", func(r chi.Router) {
-		r.Post("/", serv.shortenURL)
+		r.Post("/api/shorten", serv.shortenJSON)
 		r.Get("/{id}", serv.getFullURL)
+		r.Post("/", serv.shortenURL)
 	})
 	return r
 }
