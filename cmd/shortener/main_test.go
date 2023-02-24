@@ -160,9 +160,9 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	var err error
 
 	bodyStr := struct {
-		LongUrl string `json:"url"`
+		LongURL string `json:"url"`
 	}{
-		LongUrl: "https://www.youtube.com",
+		LongURL: "https://www.youtube.com",
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)
