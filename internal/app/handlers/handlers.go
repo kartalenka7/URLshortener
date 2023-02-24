@@ -14,7 +14,7 @@ import (
 var (
 	paramID         = "id"
 	headerLocation  = "Location"
-	contentTypeJson = "application/json"
+	contentTypeJSON = "application/json"
 )
 
 type Repository interface {
@@ -60,7 +60,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 }
 
 type Request struct {
-	LongUrl string `json:"url"`
+	LongURL string `json:"url"`
 }
 
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
@@ -76,7 +76,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(requestJSON.LongUrl)
+	gToken, err := s.storage.AddLink(requestJSON.LongURL)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -92,7 +92,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(response)
 
-	rw.Header().Set("Content-Type", contentTypeJson)
+	rw.Header().Set("Content-Type", contentTypeJSON)
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
