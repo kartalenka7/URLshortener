@@ -49,6 +49,7 @@ func TestPOST(t *testing.T) {
 			assert.Equal(t, tt.want.statusCode, statusCode)
 			assert.NoError(t, err)
 			assert.NotNil(t, body)
+			fmt.Println(body)
 		})
 	}
 }
@@ -92,7 +93,6 @@ func TestGET(t *testing.T) {
 			statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, statusCode)
 			require.Error(t, err)
-			fmt.Println(err.Error())
 			assert.Equal(t, tt.want.err, err.Error())
 
 		})

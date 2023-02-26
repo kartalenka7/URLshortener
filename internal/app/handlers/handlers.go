@@ -1,12 +1,12 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-
-	"bytes"
+	"os"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -41,13 +41,11 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
-	sToken := fmt.Sprintf("http://localhost:8080/%s", gToken)
+	sToken := os.Getenv("BASE_URL") + gToken
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	shortURL := chi.URLParam(req, paramID)
-	fmt.Println(shortURL)
-	fmt.Println(s.storage)
 	// получаем длинный url
 	longURL, err := s.storage.GetLongURL(shortURL)
 	if err != nil {
@@ -85,7 +83,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	response := struct {
 		ShortURL string `json:"result"`
 	}{
-		ShortURL: fmt.Sprintf("http://localhost:8080/%s", gToken),
+		ShortURL: os.Getenv("BASE_URL") + gToken,
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)

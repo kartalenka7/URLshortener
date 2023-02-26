@@ -3,6 +3,7 @@ package main
 import (
 	"log"
 	"net/http"
+	"os"
 
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
@@ -13,7 +14,8 @@ var (
 )
 
 func main() {
+
 	storage := storage.NewStorage()
 	router := handlers.NewRouter(storage)
-	log.Fatal(http.ListenAndServe(localAddr, router))
+	log.Fatal(http.ListenAndServe(os.Getenv("SERVER_ADDRESS"), router))
 }
