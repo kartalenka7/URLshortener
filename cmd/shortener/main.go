@@ -14,7 +14,7 @@ var (
 )
 
 type Config struct {
-	Server string `env:"SERVER_ADDRESS"`
+	Server string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 }
 
 func main() {
