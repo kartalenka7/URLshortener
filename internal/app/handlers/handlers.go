@@ -55,7 +55,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	sToken := cfg.BaseURL + "/" + gToken
+	sToken := cfg.BaseURL + gToken
 	log.Println(sToken)
 	fmt.Fprint(rw, sToken)
 }
