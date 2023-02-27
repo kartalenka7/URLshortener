@@ -26,5 +26,5 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Fatal(http.ListenAndServe(cfg.server, router))
+	log.Fatal(http.ListenAndServe(localAddr, router))
 }
