@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
-	"log"
 	"net/http"
+	urlNet "net/url"
 	"strings"
 
 	"github.com/caarlos0/env/v6"
@@ -56,7 +56,12 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	sToken := cfg.BaseURL + gToken
-	log.Println(sToken)
+	_, urlParseErr := urlNet.Parse(sToken)
+	if urlParseErr != nil {
+		sToken = cfg.BaseURL + "/" + gToken
+		fmt.Fprint(rw, sToken)
+		return
+	}
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
