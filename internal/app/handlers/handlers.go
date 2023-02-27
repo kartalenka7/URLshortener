@@ -60,12 +60,12 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
-	log.Println("Get full url")
+	fmt.Println("Get full url")
 	shortURL := chi.URLParam(req, paramID)
-	log.Printf("short url %s", shortURL)
+	fmt.Printf("short url %s", shortURL)
 	// получаем длинный url
 	longURL, err := s.storage.GetLongURL(shortURL)
-	log.Println(longURL)
+	fmt.Println(longURL)
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
