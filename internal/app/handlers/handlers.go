@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 
 	"github.com/caarlos0/env/v6"
@@ -23,7 +24,7 @@ type Repository interface {
 }
 
 type config struct {
-	baseURL string
+	BaseURL string `env:"BASE_URL"`
 }
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
@@ -51,13 +52,15 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	sToken := cfg.baseURL + gToken
+	sToken := cfg.BaseURL + gToken
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	shortURL := chi.URLParam(req, paramID)
+	log.Printf("short url  %s", shortURL)
 	// получаем длинный url
 	longURL, err := s.storage.GetLongURL(shortURL)
+	log.Println(longURL)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -99,7 +102,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	response := struct {
 		ShortURL string `json:"result"`
 	}{
-		ShortURL: cfg.baseURL + gToken,
+		ShortURL: cfg.BaseURL + gToken,
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)

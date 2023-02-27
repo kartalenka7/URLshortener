@@ -14,17 +14,17 @@ var (
 )
 
 type Config struct {
-	server string
+	Server string `env:"SERVER_ADDRESS"`
 }
 
 func main() {
 	var cfg Config
-
 	storage := storage.NewStorage()
 	router := handlers.NewRouter(storage)
 	err := env.Parse(&cfg)
 	if err != nil {
 		log.Fatal(err)
 	}
-	log.Fatal(http.ListenAndServe(cfg.server, router))
+	log.Println(cfg.Server)
+	log.Fatal(http.ListenAndServe(cfg.Server, router))
 }

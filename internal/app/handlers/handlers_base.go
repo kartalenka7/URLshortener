@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"log"
+
 	"example.com/shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 )
@@ -13,6 +15,7 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 	serv := &Server{
 		storage: *s,
 	}
+	log.Println("выбираем роутер")
 	// определяем роутер chi
 	r := chi.NewRouter()
 	// создадим суброутер, который будет содержать две функции
