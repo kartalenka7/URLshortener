@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"os"
 
+	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -22,7 +22,12 @@ type Repository interface {
 	GetLongURL(sToken string) (string, error)
 }
 
+type config struct {
+	baseURL string
+}
+
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
+	var cfg config
 	// Читаем строку URL из body
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -41,7 +46,12 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
-	sToken := os.Getenv("BASE_URL") + gToken
+	err = env.Parse(&cfg)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	sToken := cfg.baseURL + gToken
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
@@ -63,6 +73,7 @@ type Request struct {
 
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	var requestJSON Request
+	var cfg config
 
 	// чтение JSON объекта из body
 	decoder := json.NewDecoder(req.Body)
@@ -79,11 +90,16 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	err = env.Parse(&cfg)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// формируем json объект ответа
 	response := struct {
 		ShortURL string `json:"result"`
 	}{
-		ShortURL: os.Getenv("BASE_URL") + gToken,
+		ShortURL: cfg.baseURL + gToken,
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)

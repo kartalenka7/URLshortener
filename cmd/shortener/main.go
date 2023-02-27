@@ -3,19 +3,28 @@ package main
 import (
 	"log"
 	"net/http"
-	"os"
 
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
+	"github.com/caarlos0/env/v6"
 )
 
 var (
 	localAddr = "localhost:8080"
 )
 
+type Config struct {
+	server string
+}
+
 func main() {
+	var cfg Config
 
 	storage := storage.NewStorage()
 	router := handlers.NewRouter(storage)
-	log.Fatal(http.ListenAndServe(os.Getenv("SERVER_ADDRESS"), router))
+	err := env.Parse(&cfg)
+	if err != nil {
+		log.Fatal(err)
+	}
+	log.Fatal(http.ListenAndServe(cfg.server, router))
 }
