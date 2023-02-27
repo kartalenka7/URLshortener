@@ -115,6 +115,10 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}{
 		ShortURL: cfg.BaseURL + gToken,
 	}
+	_, urlParseErr := urlNet.Parse(response.ShortURL)
+	if urlParseErr != nil {
+		response.ShortURL = cfg.BaseURL + "/" + gToken
+	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
