@@ -7,6 +7,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"strings"
 
 	"github.com/caarlos0/env/v6"
 	"github.com/go-chi/chi/v5"
@@ -24,15 +25,17 @@ type Repository interface {
 }
 
 type config struct {
-	BaseURL string `env:"BASE_URL"`
+	BaseURL string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
 }
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	var cfg config
+	fmt.Println("shortenURL")
 	// Читаем строку URL из body
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
-	url := string(b)
+	url := strings.Replace(string(b), "url=", "", 1)
+	fmt.Println(url)
 	// обрабатываем ошибку
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -53,15 +56,18 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	sToken := cfg.BaseURL + gToken
+	log.Println(sToken)
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
+	log.Println("Get full url")
 	shortURL := chi.URLParam(req, paramID)
-	log.Printf("short url  %s", shortURL)
+	log.Printf("short url %s", shortURL)
 	// получаем длинный url
 	longURL, err := s.storage.GetLongURL(shortURL)
 	log.Println(longURL)
 	if err != nil {
+		fmt.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}

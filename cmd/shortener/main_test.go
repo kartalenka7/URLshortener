@@ -93,6 +93,7 @@ func TestGET(t *testing.T) {
 			statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, statusCode)
 			require.Error(t, err)
+			fmt.Println(err.Error())
 			assert.Equal(t, tt.want.err, err.Error())
 
 		})
