@@ -81,7 +81,7 @@ func TestGET(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := s.AddLink(tt.longURL, "links.log")
+			gToken, err := s.AddLink(tt.longURL, "")
 			assert.NoError(t, err)
 
 			r := handlers.NewRouter(s)
