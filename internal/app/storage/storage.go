@@ -55,10 +55,11 @@ func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
 		LongURL:  longURL,
 	}
 	log.Printf("Записываем в файл %s", links)
+	log.Printf("Имя файла %s", filename)
 	if err := producer.WriteLinks(&links); err != nil {
+		log.Println(err.Error())
 		log.Fatal(err)
 	}
-
 	return gToken, err
 }
 
@@ -74,6 +75,7 @@ func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error)
 	}
 	//чтение из файла
 	log.Println("Читаем из файла")
+	log.Printf("Имя файла %s", filename)
 	consumer, err := NewConsumer(filename)
 	if err != nil {
 		log.Fatal(err)
