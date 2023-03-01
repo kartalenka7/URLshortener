@@ -44,7 +44,7 @@ func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
 	}
 
 	// запись в файл
-	producer, err := NewProducer("links.log")
+	producer, err := NewProducer(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -84,11 +84,11 @@ func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error)
 
 	for {
 		readlinks, err := consumer.ReadLinks()
-		fmt.Println(readlinks)
 		if err != nil {
 			fmt.Println(err.Error())
 			break
 		}
+		fmt.Println(readlinks)
 		if readlinks.ShortURL == sToken {
 			fmt.Printf("Нашли в файле, %s\n", readlinks.LongURL)
 			return readlinks.LongURL, err
