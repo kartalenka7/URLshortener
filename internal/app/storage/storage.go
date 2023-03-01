@@ -72,6 +72,7 @@ func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error)
 		return longURL, err
 	}
 	//чтение из файла
+	log.Println("Читаем из файла")
 	consumer, err := NewConsumer(filename)
 	if err != nil {
 		log.Fatal(err)
@@ -80,6 +81,7 @@ func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error)
 
 	for {
 		readlinks, err := consumer.ReadLinks()
+		fmt.Println(readlinks)
 		if err != nil {
 			fmt.Println(err.Error())
 			break
