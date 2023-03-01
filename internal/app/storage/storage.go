@@ -54,6 +54,7 @@ func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
 		ShortURL: gToken,
 		LongURL:  longURL,
 	}
+	log.Printf("Записываем в файл %s", links)
 	if err := producer.WriteLinks(&links); err != nil {
 		log.Fatal(err)
 	}

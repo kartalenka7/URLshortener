@@ -53,9 +53,11 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(url, cfg.File)
 	if err != nil {
+		log.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("Short URL %s", gToken)
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
