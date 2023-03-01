@@ -59,10 +59,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	sToken := cfg.BaseURL + gToken
 	_, urlParseErr := urlNet.Parse(sToken)
 	if urlParseErr != nil {
