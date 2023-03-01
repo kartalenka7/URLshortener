@@ -61,17 +61,18 @@ func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
 	return gToken, err
 }
 
-func (s StorageLinks) GetLongURL(sToken string, file string) (string, error) {
+func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error) {
 	var err error
 
-	if file != "" {
+	if filename == "" {
 		longURL, ok := s.linksMap[sToken]
 		if !ok {
 			return "", errors.New("link is not found")
 		}
+		return longURL, err
 	}
 	//чтение из файла
-	consumer, err := NewConsumer(file)
+	consumer, err := NewConsumer(filename)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -90,5 +91,5 @@ func (s StorageLinks) GetLongURL(sToken string, file string) (string, error) {
 		fmt.Println(readlinks)
 	}
 
-	return longURL, err
+	return "", err
 }
