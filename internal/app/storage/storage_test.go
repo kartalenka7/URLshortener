@@ -27,7 +27,7 @@ func TestStorage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStorage()
 			// Добавляем ссылку в хранилище
-			gToken, err := s.AddLink(tt.longURL)
+			gToken, err := s.AddLink(tt.longURL, "links.log")
 			if err != nil {
 				t.Errorf("StorageLinks.GetLongURL() error = %v", err)
 				return
@@ -41,7 +41,7 @@ func TestStorage(t *testing.T) {
 			assert.Equal(t, s.GetStorageLen(), 1)
 
 			// Получаем ссылку
-			got, err := s.GetLongURL(gToken)
+			got, err := s.GetLongURL(gToken, "links.log")
 			assert.Equal(t, got, tt.longURL)
 			assert.NoError(t, err)
 		})

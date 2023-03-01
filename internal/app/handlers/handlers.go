@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	urlNet "net/url"
 	"strings"
@@ -22,27 +23,35 @@ var (
 type Repository interface {
 	AddLink(gToken string, longURL string) error
 	GetLongURL(sToken string) (string, error)
+	GetStorageLen() int
 }
 
-type config struct {
+type Config struct {
 	BaseURL string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
+	Server  string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	File    string `env:"FILE_STORAGE_PATH"`
 }
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
-	var cfg config
-	fmt.Println("shortenURL")
-	// Читаем строку URL из body
-	b, err := io.ReadAll(req.Body)
-	defer req.Body.Close()
-	url := strings.Replace(string(b), "url=", "", 1)
-	fmt.Println(url)
-	// обрабатываем ошибку
+	var cfg Config
+	// получаем переменные окружения
+	err := env.Parse(&cfg)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Println("shorten URL")
+	// Читаем строку URL из body
+	b, err := io.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	url := strings.Replace(string(b), "url=", "", 1)
+	log.Printf("long url %s\n", url)
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(url)
+	gToken, err := s.storage.AddLink(url, cfg.File)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -50,7 +59,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
-	err = env.Parse(&cfg)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
@@ -65,17 +73,25 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
-	fmt.Println("Get full url")
+	var cfg Config
+	log.Println("Get full url")
+	// получаем переменные окружения
+	err := env.Parse(&cfg)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	//получаем сокращенный url из параметра
 	shortURL := chi.URLParam(req, paramID)
-	fmt.Printf("short url %s", shortURL)
+	log.Printf("short url %s\n", shortURL)
 	// получаем длинный url
-	longURL, err := s.storage.GetLongURL(shortURL)
-	fmt.Println(longURL)
+	longURL, err := s.storage.GetLongURL(shortURL, cfg.File)
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// возвращаем длинный url в поле Location
 	rw.Header().Set(headerLocation, longURL)
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
@@ -87,8 +103,13 @@ type Request struct {
 
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	var requestJSON Request
-	var cfg config
-
+	var cfg Config
+	// Получаем переменные окружения
+	err := env.Parse(&cfg)
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// чтение JSON объекта из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
@@ -99,12 +120,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(requestJSON.LongURL)
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	err = env.Parse(&cfg)
+	gToken, err := s.storage.AddLink(requestJSON.LongURL, cfg.File)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return

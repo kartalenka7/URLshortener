@@ -13,12 +13,12 @@ var (
 	localAddr = "localhost:8080"
 )
 
-type Config struct {
+/* type Config struct {
 	Server string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-}
+} */
 
 func main() {
-	var cfg Config
+	var cfg handlers.Config
 	storage := storage.NewStorage()
 	router := handlers.NewRouter(storage)
 	err := env.Parse(&cfg)

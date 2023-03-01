@@ -2,9 +2,14 @@ package utils
 
 import (
 	"math/rand"
+	"time"
 )
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
+
+func init() {
+	rand.Seed(time.Now().UnixNano())
+}
 
 // Генерирование короткой ссылки
 func RandStringBytes(n int) string {
