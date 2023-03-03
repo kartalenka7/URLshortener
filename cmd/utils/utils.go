@@ -38,7 +38,6 @@ func RandStringBytes(n int) string {
 	return string(link)
 }
 
-// Парсинг переменных окружения
 func VarParse() (Config, error) {
 	var cfg Config
 	var cfgFlag Config
@@ -59,15 +58,15 @@ func VarParse() (Config, error) {
 	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
 	flag.Parse()
 
-	if cfgFlag.Server != "" {
+	if cfg.Server == "" {
 		cfg.Server = cfgFlag.Server
 	}
 
-	if cfgFlag.File != "" {
+	if cfg.File == "" {
 		cfg.File = cfgFlag.File
 	}
 
-	if cfgFlag.BaseURL != "" {
+	if cfg.BaseURL == "" {
 		cfg.BaseURL = cfgFlag.BaseURL
 	}
 
