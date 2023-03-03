@@ -4,27 +4,27 @@ import (
 	"log"
 	"net/http"
 
+	utils "example.com/shortener/cmd/utils"
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
-	"github.com/caarlos0/env/v6"
 )
 
 var (
 	localAddr = "localhost:8080"
 )
 
-/* type Config struct {
-	Server string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-} */
-
 func main() {
-	var cfg handlers.Config
+	var cfg utils.Config
+	var err error
+
 	storage := storage.NewStorage()
-	router := handlers.NewRouter(storage)
-	err := env.Parse(&cfg)
+	// получаем структуру с конфигурацией приложения
+	cfg, err = utils.VarParse()
 	if err != nil {
 		log.Fatal(err)
 	}
+	router := handlers.NewRouter(storage, &cfg)
+
 	log.Println(cfg.Server)
 	log.Fatal(http.ListenAndServe(cfg.Server, router))
 }

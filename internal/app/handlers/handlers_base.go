@@ -3,17 +3,20 @@ package handlers
 import (
 	"log"
 
+	"example.com/shortener/cmd/utils"
 	"example.com/shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
 	storage storage.StorageLinks
+	config  utils.Config
 }
 
-func NewRouter(s *storage.StorageLinks) chi.Router {
+func NewRouter(s *storage.StorageLinks, cfg *utils.Config) chi.Router {
 	serv := &Server{
 		storage: *s,
+		config:  *cfg,
 	}
 	log.Println("выбираем роутер")
 	// определяем роутер chi

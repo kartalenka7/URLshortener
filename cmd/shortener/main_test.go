@@ -11,11 +11,22 @@ import (
 
 	"errors"
 
+	utils "example.com/shortener/cmd/utils"
 	handlers "example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/storage"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
+
+var cfg utils.Config
+
+func init() {
+	cfg = utils.Config{
+		BaseURL: "http://localhost:8080/",
+		Server:  "localhost:8080",
+		File:    "links.log",
+	}
+}
 
 func TestPOST(t *testing.T) {
 
@@ -41,7 +52,7 @@ func TestPOST(t *testing.T) {
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
-			r := handlers.NewRouter(s)
+			r := handlers.NewRouter(s, &cfg)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -81,10 +92,10 @@ func TestGET(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := s.AddLink(tt.longURL, "")
+			gToken, err := s.AddLink(tt.longURL, cfg.File)
 			assert.NoError(t, err)
 
-			r := handlers.NewRouter(s)
+			r := handlers.NewRouter(s, &cfg)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -126,7 +137,7 @@ func TestJSON(t *testing.T) {
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
-			r := handlers.NewRouter(s)
+			r := handlers.NewRouter(s, &cfg)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
