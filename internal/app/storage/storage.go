@@ -88,12 +88,11 @@ func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error)
 			fmt.Println(err.Error())
 			break
 		}
-		fmt.Println(readlinks)
+		log.Println(readlinks)
 		if readlinks.ShortURL == sToken {
 			fmt.Printf("Нашли в файле, %s\n", readlinks.LongURL)
 			return readlinks.LongURL, err
 		}
-		fmt.Println(readlinks)
 	}
 
 	return "", err

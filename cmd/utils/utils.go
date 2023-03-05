@@ -69,6 +69,6 @@ func VarParse() (Config, error) {
 	if cfg.BaseURL == "" {
 		cfg.BaseURL = cfgFlag.BaseURL
 	}
-
+	log.Printf("Переменные конфигурации: %s", &cfg)
 	return cfg, err
 }
