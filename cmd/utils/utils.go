@@ -58,20 +58,20 @@ func VarParse() (Config, error) {
 	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
 	flag.Parse()
 
-	if cfg.Server == "" {
-		cfg.Server = cfgFlag.Server
+	if cfgFlag.Server == localAddr && cfg.Server != "" {
+		cfgFlag.Server = cfg.Server
 	}
 
-	if cfg.File == "" {
-		cfg.File = cfgFlag.File
+	if cfgFlag.File == filename && cfg.File != "" {
+		cfgFlag.File = cfg.File
 	}
 
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = cfgFlag.BaseURL
+	if cfgFlag.BaseURL == baseURL && cfg.BaseURL != "" {
+		cfgFlag.BaseURL = cfg.BaseURL
 	}
 	log.Println(cfgFlag.BaseURL)
 	log.Println(cfgFlag.Server)
 	log.Println(cfgFlag.File)
 	log.Printf("Переменные конфигурации: %s", &cfg)
-	return cfg, err
+	return cfgFlag, err
 }
