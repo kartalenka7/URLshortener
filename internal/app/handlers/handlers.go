@@ -46,7 +46,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("Short URL %s", gToken)
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
@@ -55,8 +54,10 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	if urlParseErr != nil {
 		sToken = s.config.BaseURL + "/" + gToken
 		fmt.Fprint(rw, sToken)
+		log.Printf("Short URL %s", sToken)
 		return
 	}
+	log.Printf("Short URL %s", sToken)
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
