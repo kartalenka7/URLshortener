@@ -86,6 +86,7 @@ type Request struct {
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	var requestJSON Request
 
+	log.Println("POST JSON")
 	// чтение JSON объекта из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
@@ -107,6 +108,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}{
 		ShortURL: s.config.BaseURL + gToken,
 	}
+	log.Printf("short url %s\n", response.ShortURL)
 	_, urlParseErr := urlNet.Parse(response.ShortURL)
 	if urlParseErr != nil {
 		response.ShortURL = s.config.BaseURL + "/" + gToken
