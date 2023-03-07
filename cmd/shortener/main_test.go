@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -156,7 +157,7 @@ func testRequest(t *testing.T, ts *httptest.Server, method, request string) (int
 
 	req, err := http.NewRequest(method, ts.URL+request, nil)
 	require.NoError(t, err)
-	req.Header.Set("Accept-Encoding", "gzip")
+	log.Println(req.Header)
 
 	client := new(http.Client)
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

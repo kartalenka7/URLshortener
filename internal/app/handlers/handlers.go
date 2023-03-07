@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -9,8 +10,6 @@ import (
 	"net/http"
 	urlNet "net/url"
 	"strings"
-
-	"compress/gzip"
 
 	"github.com/go-chi/chi/v5"
 )
@@ -30,17 +29,38 @@ type Repository interface {
 // Структура для парсинга переменных окружения
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
-
+	var url string
+	var err error
 	log.Println("shorten URL")
-	// Читаем строку URL из body
-	b, err := io.ReadAll(req.Body)
-	defer req.Body.Close()
-	if err != nil {
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
+	if !strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
+		// Читаем строку URL из body
+		b, err := io.ReadAll(req.Body)
+		defer req.Body.Close()
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		url = strings.Replace(string(b), "url=", "", 1)
+		log.Printf("long url %s\n", url)
+
+	} else {
+		gz, err := gzip.NewReader(req.Body)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		// не забывайте потом закрыть *gzip.Reader
+		defer gz.Close()
+
+		// при чтении вернётся распакованный слайс байт
+		b, err := io.ReadAll(gz)
+		if err != nil {
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		url = strings.Replace(string(b), "url=", "", 1)
+		log.Printf("long url gzip %s\n", url)
 	}
-	url := strings.Replace(string(b), "url=", "", 1)
-	log.Printf("long url %s\n", url)
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(url, s.config.File)
 	if err != nil {
@@ -80,16 +100,6 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем длинный url в поле Location
 
 	log.Printf("Заголовок %s\n", req.Header)
-	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
-		rw.Header().Set("Accept-Encoding", "gzip")
-		rw.Header().Set("Content-Encoding", "gzip")
-	} else {
-		var buf bytes.Buffer
-		zw, _ := gzip.NewReader(&buf)
-		_, _ = zw.Read([]byte(longURL))
-		_ = zw.Close()
-		log.Printf("longURL после декомпресса %s\n", longURL)
-	}
 	rw.Header().Set(headerLocation, longURL)
 	log.Printf("Заголовок возврата %s \n", rw.Header())
 	// возвращаем ответ с кодом 307
