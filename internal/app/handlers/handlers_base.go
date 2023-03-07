@@ -64,9 +64,9 @@ func NewRouter(s *storage.StorageLinks, cfg *utils.Config) chi.Router {
 	log.Println("выбираем роутер")
 	// определяем роутер chi
 	r := chi.NewRouter()
-	r.Use(gzipHandle)
 	// создадим суброутер, который будет содержать две функции
 	r.Route("/", func(r chi.Router) {
+		r.Use(gzipHandle)
 		r.Post("/api/shorten", serv.shortenJSON)
 		r.Get("/{id}", serv.getFullURL)
 		r.Post("/", serv.shortenURL)
