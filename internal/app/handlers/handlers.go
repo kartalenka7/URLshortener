@@ -58,6 +58,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Printf("Short URL %s", sToken)
+	log.Println(rw.Header())
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
@@ -80,6 +81,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 		rw.Header().Set("Accept-Encoding", "gzip")
 		rw.Header().Set("Content-Encoding", "gzip")
 	}
+	log.Println(rw.Header())
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
 }
@@ -125,6 +127,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	encoder.Encode(response)
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
+	log.Println(rw.Header())
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
