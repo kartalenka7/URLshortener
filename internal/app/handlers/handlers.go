@@ -10,6 +10,8 @@ import (
 	urlNet "net/url"
 	"strings"
 
+	"compress/gzip"
+
 	"github.com/go-chi/chi/v5"
 )
 
@@ -58,7 +60,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Printf("Short URL %s", sToken)
-	log.Println(rw.Header())
+
 	fmt.Fprint(rw, sToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
@@ -76,12 +78,20 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// возвращаем длинный url в поле Location
-	rw.Header().Set(headerLocation, longURL)
+
+	log.Printf("Заголовок %s\n", req.Header)
 	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
 		rw.Header().Set("Accept-Encoding", "gzip")
 		rw.Header().Set("Content-Encoding", "gzip")
+	} else {
+		var buf bytes.Buffer
+		zw, _ := gzip.NewReader(&buf)
+		_, _ = zw.Read([]byte(longURL))
+		_ = zw.Close()
+		log.Printf("longURL после декомпресса %s\n", longURL)
 	}
-	log.Println(rw.Header())
+	rw.Header().Set(headerLocation, longURL)
+	log.Printf("Заголовок возврата %s \n", rw.Header())
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
 }
@@ -127,7 +137,6 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	encoder.Encode(response)
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
-	log.Println(rw.Header())
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
