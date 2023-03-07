@@ -36,6 +36,7 @@ func gzipHandle(next http.Handler) http.Handler {
 		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
+			log.Println("not suited")
 			next.ServeHTTP(w, r)
 			return
 		}

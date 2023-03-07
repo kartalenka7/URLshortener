@@ -76,6 +76,10 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	}
 	// возвращаем длинный url в поле Location
 	rw.Header().Set(headerLocation, longURL)
+	if strings.Contains(req.Header.Get("Accept-Encoding"), "gzip") {
+		rw.Header().Set("Accept-Encoding", "gzip")
+		rw.Header().Set("Content-Encoding", "gzip")
+	}
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
 }
