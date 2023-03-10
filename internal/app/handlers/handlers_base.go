@@ -18,12 +18,12 @@ type Server struct {
 	config  utils.Config
 }
 
-type gzipWriter struct {
+type GzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
 }
 
-func (w gzipWriter) Write(b []byte) (int, error) {
+func (w GzipWriter) Write(b []byte) (int, error) {
 	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
 	return w.Writer.Write(b)
 }
@@ -54,38 +54,38 @@ func gzipHandle(next http.Handler) http.Handler {
 		log.Printf("Заголовок после GzipHandler, %s", w.Header())
 		// замыкание — используем ServeHTTP следующего хендлера
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
-		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
+		next.ServeHTTP(GzipWriter{ResponseWriter: w, Writer: gz}, r)
 	})
 }
 
 func ReaderHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		longURLGzip := r.Header.Get("Location")
-		if longURLGzip == "" {
-			return
-		}
-		if r.Header.Get(`Content-Encoding`) == `gzip` {
-			gz, err := gzip.NewReader(strings.NewReader(longURLGzip))
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			defer gz.Close()
+		log.Printf("Gzip 2,%s \n", longURLGzip)
+		/* 		if longURLGzip == "" {
+		   			return
+		   		}
+		   		if r.Header.Get(`Content-Encoding`) == `gzip` {
+		   			gz, err := gzip.NewReader(strings.NewReader(longURLGzip))
+		   			if err != nil {
+		   				http.Error(w, err.Error(), http.StatusInternalServerError)
+		   				return
+		   			}
+		   			defer gz.Close()
 
-			location, err := io.ReadAll(gz)
-			if err != nil {
-				http.Error(w, err.Error(), http.StatusInternalServerError)
-				return
-			}
-			longURLGzip = string(location)
+		   			location, err := io.ReadAll(gz)
+		   			if err != nil {
+		   				http.Error(w, err.Error(), http.StatusInternalServerError)
+		   				return
+		   			}
+		   			longURLGzip = string(location)
+		   		}
 
-		}
+		   		w.Header().Set(headerLocation, longURLGzip)
+		   		// возвращаем ответ с кодом 307
+		   		w.WriteHeader(http.StatusTemporaryRedirect)
 
-		w.Header().Set(headerLocation, longURLGzip)
-		// возвращаем ответ с кодом 307
-		w.WriteHeader(http.StatusTemporaryRedirect)
-
-		log.Printf("Итоговый длинный URL %s\n", longURLGzip)
+		   		log.Printf("Итоговый длинный URL %s\n", longURLGzip) */
 	})
 }
 
@@ -103,7 +103,6 @@ func NewRouter(s *storage.StorageLinks, cfg *utils.Config) chi.Router {
 		r.Post("/api/shorten", serv.shortenJSON)
 		r.Get("/{id}", serv.getFullURL)
 		r.Post("/", serv.shortenURL)
-		r.Use(ReaderHandle)
 	})
 	return r
 }
