@@ -8,8 +8,8 @@ import (
 	"compress/gzip"
 	"net/http"
 
-	"example.com/shortener/cmd/utils"
 	"example.com/shortener/internal/app/storage"
+	"example.com/shortener/internal/config/utils"
 	"github.com/go-chi/chi/v5"
 )
 

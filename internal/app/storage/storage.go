@@ -6,7 +6,7 @@ import (
 
 	"log"
 
-	utils "example.com/shortener/cmd/utils"
+	"example.com/shortener/internal/config/utils"
 )
 
 // слой хранилища

@@ -111,6 +111,10 @@ type Request struct {
 	LongURL string `json:"url"`
 }
 
+type Response struct {
+	ShortURL string `json:"result"`
+}
+
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	var requestJSON Request
 
@@ -131,9 +135,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// формируем json объект ответа
-	response := struct {
-		ShortURL string `json:"result"`
-	}{
+	response := Response{
 		ShortURL: s.config.BaseURL + gToken,
 	}
 	_, urlParseErr := urlNet.Parse(response.ShortURL)
@@ -142,14 +144,19 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}
 	log.Printf("short url %s\n", response.ShortURL)
 
-	buf := bytes.NewBuffer([]byte{})
-	encoder := json.NewEncoder(buf)
-	encoder.SetEscapeHTML(false)
-	encoder.Encode(response)
-
 	rw.Header().Set("Content-Type", contentTypeJSON)
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
-	// пишем в тело ответа сокращенный URL
-	fmt.Fprint(rw, buf)
+	// пишем в тело ответа закодированный в JSON объект
+	// который содержит сокращенный URL
+	fmt.Fprint(rw, response.ToJson())
+}
+
+func (r *Response) ToJson() *bytes.Buffer {
+	// записываем результат JSON-сериализации в хранилище байт
+	buf := bytes.NewBuffer([]byte{})
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(r)
+	return buf
 }

@@ -4,9 +4,9 @@ import (
 	"log"
 	"net/http"
 
-	utils "example.com/shortener/cmd/utils"
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
+	utils "example.com/shortener/internal/config/utils"
 )
 
 var (
