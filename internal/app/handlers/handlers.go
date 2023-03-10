@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -32,18 +31,18 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	var url string
 	var err error
 	log.Println("shorten URL")
-	if !strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
-		// Читаем строку URL из body
-		b, err := io.ReadAll(req.Body)
-		defer req.Body.Close()
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		url = strings.Replace(string(b), "url=", "", 1)
-		log.Printf("long url %s\n", url)
+	//if !strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
+	// Читаем строку URL из body
+	b, err := io.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	url = strings.Replace(string(b), "url=", "", 1)
+	log.Printf("long url %s\n", url)
 
-	} else {
+	/* 	} else {
 		gz, err := gzip.NewReader(req.Body)
 		if err != nil {
 			http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -60,13 +59,16 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		}
 		url = strings.Replace(string(b), "url=", "", 1)
 		log.Printf("long url gzip %s\n", url)
-	}
+	} */
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(url, s.config.File)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
+	}
+	if strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
+		rw.Header().Set("Content-Encoding", "gzip")
 	}
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)

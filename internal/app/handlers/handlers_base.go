@@ -28,6 +28,7 @@ func (w gzipWriter) Write(b []byte) (int, error) {
 	return w.Writer.Write(b)
 }
 
+// middleware принимает параметром Handler и возвращает тоже Handler
 func gzipHandle(next http.Handler) http.Handler {
 	log.Println("gzips")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -51,8 +52,40 @@ func gzipHandle(next http.Handler) http.Handler {
 
 		w.Header().Set("Content-Encoding", "gzip")
 		log.Printf("Заголовок после GzipHandler, %s", w.Header())
+		// замыкание — используем ServeHTTP следующего хендлера
 		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
 		next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gz}, r)
+	})
+}
+
+func ReaderHandle(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		longURLGzip := r.Header.Get("Location")
+		if longURLGzip == "" {
+			return
+		}
+		if r.Header.Get(`Content-Encoding`) == `gzip` {
+			gz, err := gzip.NewReader(strings.NewReader(longURLGzip))
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			defer gz.Close()
+
+			location, err := io.ReadAll(gz)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			longURLGzip = string(location)
+
+		}
+
+		w.Header().Set(headerLocation, longURLGzip)
+		// возвращаем ответ с кодом 307
+		w.WriteHeader(http.StatusTemporaryRedirect)
+
+		log.Printf("Итоговый длинный URL %s\n", longURLGzip)
 	})
 }
 
@@ -70,6 +103,7 @@ func NewRouter(s *storage.StorageLinks, cfg *utils.Config) chi.Router {
 		r.Post("/api/shorten", serv.shortenJSON)
 		r.Get("/{id}", serv.getFullURL)
 		r.Post("/", serv.shortenURL)
+		r.Use(ReaderHandle)
 	})
 	return r
 }
