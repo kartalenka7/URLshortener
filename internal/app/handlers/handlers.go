@@ -149,10 +149,10 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL
-	fmt.Fprint(rw, response.ToJson())
+	fmt.Fprint(rw, response.ToJSON())
 }
 
-func (r *Response) ToJson() *bytes.Buffer {
+func (r *Response) ToJSON() *bytes.Buffer {
 	// записываем результат JSON-сериализации в хранилище байт
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)
