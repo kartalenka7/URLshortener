@@ -51,11 +51,11 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 	}
 
 	if config.File == "" {
-		_, ok := s.linksMap[sToken]
+		_, ok := s.linksMap[gToken]
 		if ok {
 			return "", errors.New("link already exists")
 		}
-		s.linksMap[sToken] = longURL
+		s.linksMap[gToken] = longURL
 		return sToken, err
 	}
 
@@ -76,7 +76,7 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 		log.Println(err.Error())
 		log.Fatal(err)
 	}
-	return gToken, err
+	return sToken, err
 }
 
 func (s StorageLinks) GetLongURL(sToken string) (string, error) {
