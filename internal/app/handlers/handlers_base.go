@@ -56,11 +56,11 @@ func gzipHandle(next http.Handler) http.Handler {
 	})
 }
 
-func ReaderHandle(next http.Handler) http.Handler {
+/* func ReaderHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		longURLGzip := r.Header.Get("Location")
 		log.Printf("Gzip 2,%s \n", longURLGzip)
-		/* 		if longURLGzip == "" {
+		 		if longURLGzip == "" {
 		   			return
 		   		}
 		   		if r.Header.Get(`Content-Encoding`) == `gzip` {
@@ -83,9 +83,9 @@ func ReaderHandle(next http.Handler) http.Handler {
 		   		// возвращаем ответ с кодом 307
 		   		w.WriteHeader(http.StatusTemporaryRedirect)
 
-		   		log.Printf("Итоговый длинный URL %s\n", longURLGzip) */
+		   		log.Printf("Итоговый длинный URL %s\n", longURLGzip)
 	})
-}
+} */
 
 func NewRouter(s *storage.StorageLinks) chi.Router {
 	serv := &Server{

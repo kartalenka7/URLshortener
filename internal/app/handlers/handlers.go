@@ -98,8 +98,6 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	// возвращаем длинный url в поле Location
-
-	log.Printf("Заголовок %s\n", req.Header)
 	rw.Header().Set(headerLocation, longURL)
 	log.Printf("Заголовок возврата %s \n", rw.Header())
 	// возвращаем ответ с кодом 307

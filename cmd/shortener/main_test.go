@@ -8,6 +8,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"errors"
@@ -96,6 +97,7 @@ func TestGET(t *testing.T) {
 			s.SetConfig(cfg)
 			// Добавить в хранилище URL, получить сгененированный токен
 			gToken, err := s.AddLink(tt.longURL)
+			sToken := strings.Replace(gToken, cfg.BaseURL, "", 1)
 			assert.NoError(t, err)
 
 			r := handlers.NewRouter(s)
@@ -103,12 +105,13 @@ func TestGET(t *testing.T) {
 			defer ts.Close()
 
 			// Запрос = / + токен
-			request := fmt.Sprintf("/%s", gToken)
+			request := fmt.Sprintf("/%s", sToken)
+			log.Println(request)
 			statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, statusCode)
-			//require.Error(t, err)
-			fmt.Println(err.Error())
-			//assert.Equal(t, tt.want.err, err.Error())
+			require.Error(t, err)
+			log.Println(err.Error())
+			assert.Equal(t, tt.want.err, err.Error())
 
 		})
 	}
@@ -160,7 +163,9 @@ func testRequest(t *testing.T, ts *httptest.Server, method, request string) (int
 
 	req, err := http.NewRequest(method, ts.URL+request, nil)
 	require.NoError(t, err)
-	log.Println(req.Header)
+	if err != nil {
+		log.Println(err.Error())
+	}
 
 	client := new(http.Client)
 	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {

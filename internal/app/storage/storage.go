@@ -41,7 +41,7 @@ func (s StorageLinks) SetConfig(cfg utils.Config) {
 func (s StorageLinks) AddLink(longURL string) (string, error) {
 	var err error
 	gToken := utils.RandStringBytes(10)
-
+	log.Println(gToken)
 	sToken := config.BaseURL + gToken
 	_, urlParseErr := urlNet.Parse(sToken)
 	if urlParseErr != nil {
