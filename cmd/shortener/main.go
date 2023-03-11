@@ -19,11 +19,12 @@ func main() {
 
 	storage := storage.NewStorage()
 	// получаем структуру с конфигурацией приложения
-	cfg, err = utils.VarParse()
+	cfg, err = utils.GetConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	router := handlers.NewRouter(storage, &cfg)
+	storage.SetConfig(cfg)
+	router := handlers.NewRouter(storage)
 
 	log.Println(cfg.Server)
 	log.Fatal(http.ListenAndServe(cfg.Server, router))

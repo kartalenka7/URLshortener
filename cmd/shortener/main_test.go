@@ -53,7 +53,8 @@ func TestPOST(t *testing.T) {
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
-			r := handlers.NewRouter(s, &cfg)
+			s.SetConfig(cfg)
+			r := handlers.NewRouter(s)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -92,11 +93,12 @@ func TestGET(t *testing.T) {
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
+			s.SetConfig(cfg)
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := s.AddLink(tt.longURL, cfg.File)
+			gToken, err := s.AddLink(tt.longURL)
 			assert.NoError(t, err)
 
-			r := handlers.NewRouter(s, &cfg)
+			r := handlers.NewRouter(s)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -138,7 +140,8 @@ func TestJSON(t *testing.T) {
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage()
-			r := handlers.NewRouter(s, &cfg)
+			s.SetConfig(cfg)
+			r := handlers.NewRouter(s)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
