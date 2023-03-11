@@ -75,15 +75,15 @@ func VarParse() (Config, error) {
 			cfgFlag.BaseURL = cfg.BaseURL
 		} */
 
-	if cfg.Server == "" {
+	if cfg.Server == "" || cfg.Server == localAddr {
 		cfg.Server = cfgFlag.Server
 	}
 
-	if cfg.File == "" {
+	if cfg.File == "" || cfg.File == filename {
 		cfg.File = cfgFlag.File
 	}
 
-	if cfg.BaseURL == "" {
+	if cfg.BaseURL == "" || cfg.BaseURL == baseURL {
 		cfg.BaseURL = cfgFlag.BaseURL
 	}
 
