@@ -9,13 +9,11 @@ import (
 	"net/http"
 
 	"example.com/shortener/internal/app/storage"
-	"example.com/shortener/internal/config/utils"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
 	storage storage.StorageLinks
-	config  utils.Config
 }
 
 type GzipWriter struct {
@@ -89,10 +87,9 @@ func ReaderHandle(next http.Handler) http.Handler {
 	})
 }
 
-func NewRouter(s *storage.StorageLinks, cfg *utils.Config) chi.Router {
+func NewRouter(s *storage.StorageLinks) chi.Router {
 	serv := &Server{
 		storage: *s,
-		config:  *cfg,
 	}
 	log.Println("выбираем роутер")
 	// определяем роутер chi

@@ -8,7 +8,6 @@ import (
 	"io"
 	"log"
 	"net/http"
-	urlNet "net/url"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
@@ -62,7 +61,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("long url gzip %s\n", url)
 	}
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(url, s.config.File)
+	gToken, err := s.storage.AddLink(url)
 	if err != nil {
 		log.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -72,17 +71,17 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
-	sToken := s.config.BaseURL + gToken
-	_, urlParseErr := urlNet.Parse(sToken)
-	if urlParseErr != nil {
-		sToken = s.config.BaseURL + "/" + gToken
-		fmt.Fprint(rw, sToken)
-		log.Printf("Short URL %s", sToken)
-		return
-	}
-	log.Printf("Short URL %s", sToken)
+	/*	sToken := s.config.BaseURL + gToken
+		 	_, urlParseErr := urlNet.Parse(sToken)
+			if urlParseErr != nil {
+				sToken = s.config.BaseURL + "/" + gToken
+				fmt.Fprint(rw, sToken)
+				log.Printf("Short URL %s", sToken)
+				return
+			} */
+	log.Printf("Short URL %s", gToken)
 
-	fmt.Fprint(rw, sToken)
+	fmt.Fprint(rw, gToken)
 }
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	var err error
@@ -92,7 +91,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	shortURL := chi.URLParam(req, paramID)
 	log.Printf("short url %s\n", shortURL)
 	// получаем длинный url
-	longURL, err := s.storage.GetLongURL(shortURL, s.config.File)
+	longURL, err := s.storage.GetLongURL(shortURL)
 	if err != nil {
 		fmt.Println(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -129,19 +128,19 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(requestJSON.LongURL, s.config.File)
+	gToken, err := s.storage.AddLink(requestJSON.LongURL)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// формируем json объект ответа
 	response := Response{
-		ShortURL: s.config.BaseURL + gToken,
+		ShortURL: gToken,
 	}
-	_, urlParseErr := urlNet.Parse(response.ShortURL)
-	if urlParseErr != nil {
-		response.ShortURL = s.config.BaseURL + "/" + gToken
-	}
+	/* 	_, urlParseErr := urlNet.Parse(response.ShortURL)
+	   	if urlParseErr != nil {
+	   		response.ShortURL = s.config.BaseURL + "/" + gToken
+	   	} */
 	log.Printf("short url %s\n", response.ShortURL)
 
 	rw.Header().Set("Content-Type", contentTypeJSON)

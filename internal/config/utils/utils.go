@@ -38,7 +38,7 @@ func RandStringBytes(n int) string {
 	return string(link)
 }
 
-func VarParse() (Config, error) {
+func GetConfig() (Config, error) {
 	var cfg Config
 	var cfgFlag Config
 	// Парсим переменные окружения
@@ -58,22 +58,8 @@ func VarParse() (Config, error) {
 	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
 	flag.Parse()
 
-	log.Println(cfgFlag.BaseURL)
-	log.Println(cfgFlag.Server)
-	log.Println(cfgFlag.File)
-	log.Printf("Переменные конфигурации: %s", &cfg)
-	/*
-		if cfgFlag.Server == localAddr && cfg.Server != "" {
-			cfgFlag.Server = cfg.Server
-		}
-
-		if cfgFlag.File == filename && cfg.File != "" {
-			cfgFlag.File = cfg.File
-		}
-
-		if cfgFlag.BaseURL == baseURL && cfg.BaseURL != "" {
-			cfgFlag.BaseURL = cfg.BaseURL
-		} */
+	log.Printf("Флаги командной строки: %s\n", cfgFlag)
+	log.Printf("Переменные конфигурации: %s\n", &cfg)
 
 	if cfg.Server == "" || cfg.Server == localAddr {
 		cfg.Server = cfgFlag.Server

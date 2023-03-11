@@ -3,6 +3,7 @@ package storage
 import (
 	"testing"
 
+	"example.com/shortener/internal/config/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -36,8 +37,9 @@ func TestStorage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStorage()
+			s.SetConfig(utils.Config{File: tt.file})
 			// Добавляем ссылку в хранилище
-			gToken, err := s.AddLink(tt.longURL, tt.file)
+			gToken, err := s.AddLink(tt.longURL)
 			if err != nil {
 				t.Errorf("StorageLinks.GetLongURL() error = %v", err)
 				return
@@ -53,7 +55,7 @@ func TestStorage(t *testing.T) {
 			}
 
 			// Получаем ссылку
-			got, err := s.GetLongURL(gToken, tt.file)
+			got, err := s.GetLongURL(gToken)
 			assert.Equal(t, got, tt.longURL)
 			assert.NoError(t, err)
 		})

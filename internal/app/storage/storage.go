@@ -6,6 +6,8 @@ import (
 
 	"log"
 
+	urlNet "net/url"
+
 	"example.com/shortener/internal/config/utils"
 )
 
@@ -20,6 +22,8 @@ type LinksFile struct {
 	LongURL  string `json:"long"`
 }
 
+var config utils.Config
+
 func NewStorage() *StorageLinks {
 	return &StorageLinks{
 		linksMap: make(map[string]string),
@@ -30,21 +34,33 @@ func (s StorageLinks) GetStorageLen() int {
 	return len(s.linksMap)
 }
 
-func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
+func (s StorageLinks) SetConfig(cfg utils.Config) {
+	config = cfg
+}
+
+func (s StorageLinks) AddLink(longURL string) (string, error) {
 	var err error
 	gToken := utils.RandStringBytes(10)
 
-	if filename == "" {
-		_, ok := s.linksMap[gToken]
+	sToken := config.BaseURL + gToken
+	_, urlParseErr := urlNet.Parse(sToken)
+	if urlParseErr != nil {
+		sToken = config.BaseURL + "/" + gToken
+		//fmt.Fprint(rw, sToken)
+		log.Printf("Short URL %s", sToken)
+	}
+
+	if config.File == "" {
+		_, ok := s.linksMap[sToken]
 		if ok {
 			return "", errors.New("link already exists")
 		}
-		s.linksMap[gToken] = longURL
-		return gToken, err
+		s.linksMap[sToken] = longURL
+		return sToken, err
 	}
 
 	// запись в файл
-	producer, err := NewProducer(filename)
+	producer, err := NewProducer(config.File)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -55,7 +71,7 @@ func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
 		LongURL:  longURL,
 	}
 	log.Printf("Записываем в файл %s", links)
-	log.Printf("Имя файла %s", filename)
+	log.Printf("Имя файла %s", config.File)
 	if err := producer.WriteLinks(&links); err != nil {
 		log.Println(err.Error())
 		log.Fatal(err)
@@ -63,10 +79,10 @@ func (s StorageLinks) AddLink(longURL string, filename string) (string, error) {
 	return gToken, err
 }
 
-func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error) {
+func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
 
-	if filename == "" {
+	if config.File == "" {
 		longURL, ok := s.linksMap[sToken]
 		if !ok {
 			return "", errors.New("link is not found")
@@ -75,8 +91,8 @@ func (s StorageLinks) GetLongURL(sToken string, filename string) (string, error)
 	}
 	//чтение из файла
 	log.Println("Читаем из файла")
-	log.Printf("Имя файла %s", filename)
-	consumer, err := NewConsumer(filename)
+	log.Printf("Имя файла %s", config.File)
+	consumer, err := NewConsumer(config.File)
 	if err != nil {
 		log.Fatal(err)
 	}
