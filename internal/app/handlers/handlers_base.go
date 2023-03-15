@@ -88,7 +88,7 @@ func gzipHandle(next http.Handler) http.Handler {
 				r.Body = io.NopCloser(strings.NewReader(string(b)))
 			}
 
-		} else if r.Method == http.MethodPost {
+		} else if r.Method == http.MethodGet {
 			//получаем сокращенный url из параметра
 			shortURL := chi.URLParam(r, paramID)
 			log.Printf("short url before gzip %s\n", shortURL)
