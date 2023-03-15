@@ -28,4 +28,6 @@ func main() {
 
 	log.Println(cfg.Server)
 	log.Fatal(http.ListenAndServe(cfg.Server, router))
+	// записываем ссылки из мапы и закрываем файл
+	storage.WriteInFile()
 }

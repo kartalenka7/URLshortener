@@ -88,7 +88,7 @@ func (s StorageLinks) WriteInFile() {
 		log.Fatal(err)
 	}
 	defer producer.Close()
-
+	log.Println("Записываем в файл")
 	log.Printf("Имя файла %s", config.File)
 
 	for short, long := range s.linksMap {
