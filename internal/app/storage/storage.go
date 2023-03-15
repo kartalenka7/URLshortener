@@ -83,7 +83,7 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
 
 	longToken := config.BaseURL + sToken
-	_, urlParseErr := urlNet.Parse(sToken)
+	_, urlParseErr := urlNet.Parse(longToken)
 	if urlParseErr != nil {
 		longToken = config.BaseURL + "/" + sToken
 	}
