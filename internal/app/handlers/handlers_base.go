@@ -70,7 +70,6 @@ func gzipHandle(next http.Handler) http.Handler {
 			if r.Header.Get("Content-Type") != "application/json" {
 				// Распаковать длинный url из body с помощью gzip
 				gz, err := gzip.NewReader(r.Body)
-				defer gz.Close()
 				if err != nil {
 					log.Println(err.Error())
 					/* 	http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -78,7 +77,7 @@ func gzipHandle(next http.Handler) http.Handler {
 					log.Println("no gzip")
 					next.ServeHTTP(w, r)
 				}
-
+				defer gz.Close()
 				// при чтении вернётся распакованный слайс байт
 				b, err := io.ReadAll(gz)
 				if err != nil {
