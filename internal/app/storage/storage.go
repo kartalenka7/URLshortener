@@ -83,6 +83,11 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
 
 	longToken := config.BaseURL + sToken
+	_, urlParseErr := urlNet.Parse(sToken)
+	if urlParseErr != nil {
+		longToken = config.BaseURL + "/" + sToken
+		log.Printf("Short URL %s", sToken)
+	}
 
 	if config.File == "" {
 		longURL, ok := s.linksMap[longToken]
