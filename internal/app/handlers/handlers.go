@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"compress/gzip"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -31,35 +30,17 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	var url string
 	var err error
 	log.Println("shorten URL")
-	if !strings.Contains(req.Header.Get("Content-Encoding"), "gzip") {
-		// Читаем строку URL из body
-		b, err := io.ReadAll(req.Body)
-		defer req.Body.Close()
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		url = strings.Replace(string(b), "url=", "", 1)
-		log.Printf("long url %s\n", url)
 
-	} else {
-		gz, err := gzip.NewReader(req.Body)
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		// не забывайте потом закрыть *gzip.Reader
-		defer gz.Close()
-
-		// при чтении вернётся распакованный слайс байт
-		b, err := io.ReadAll(gz)
-		if err != nil {
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		url = strings.Replace(string(b), "url=", "", 1)
-		log.Printf("long url gzip %s\n", url)
+	// Читаем строку URL из body
+	b, err := io.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	url = strings.Replace(string(b), "url=", "", 1)
+	log.Printf("long url %s\n", url)
+
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(url)
 	if err != nil {
@@ -71,18 +52,11 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
-	/*	sToken := s.config.BaseURL + gToken
-		 	_, urlParseErr := urlNet.Parse(sToken)
-			if urlParseErr != nil {
-				sToken = s.config.BaseURL + "/" + gToken
-				fmt.Fprint(rw, sToken)
-				log.Printf("Short URL %s", sToken)
-				return
-			} */
 	log.Printf("Short URL %s", gToken)
 
 	fmt.Fprint(rw, gToken)
 }
+
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	var err error
 	log.Println("Get full url")
@@ -135,10 +109,6 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	response := Response{
 		ShortURL: gToken,
 	}
-	/* 	_, urlParseErr := urlNet.Parse(response.ShortURL)
-	   	if urlParseErr != nil {
-	   		response.ShortURL = s.config.BaseURL + "/" + gToken
-	   	} */
 	log.Printf("short url %s\n", response.ShortURL)
 
 	rw.Header().Set("Content-Type", contentTypeJSON)

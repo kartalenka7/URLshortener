@@ -2,7 +2,9 @@ package main
 
 import (
 	"bytes"
+	"compress/gzip"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -10,8 +12,6 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
-
-	"errors"
 
 	handlers "example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/storage"
@@ -59,11 +59,37 @@ func TestPOST(t *testing.T) {
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
-			statusCode, body, err := testRequest(t, ts, tt.method, tt.request)
-			assert.Equal(t, tt.want.statusCode, statusCode)
+			var respBody []byte
+			var err error
+
+			var buf bytes.Buffer
+			zw := gzip.NewWriter(&buf)
+			_, _ = zw.Write([]byte("https://www.youtube.com"))
+			_ = zw.Close()
+
+			/* 	data := url.Values{}
+			data.Set("url", "https://www.youtube.com") */
+
+			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
+			require.NoError(t, err)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			req.Header.Add("Content-Encoding", "gzip")
+			req.Header.Add("Accept-Encoding", "gzip")
+			client := new(http.Client)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+
+			respBody, err = io.ReadAll(resp.Body)
+			defer resp.Body.Close()
+			require.NoError(t, err)
+
+			//statusCode, body, err := testRequest(t, ts, tt.method, tt.request)
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			assert.NoError(t, err)
-			assert.NotNil(t, body)
-			fmt.Println(body)
+			assert.NotNil(t, string(respBody))
+			fmt.Println(string(respBody))
 		})
 	}
 }
@@ -82,10 +108,10 @@ func TestGET(t *testing.T) {
 	}{
 		{
 			name:    "GET positive test",
-			longURL: "https://www.youtube.com",
+			longURL: "https://www.github.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.youtube.com\": Redirect",
+				err:        "Get \"https://www.github.com\": Redirect",
 			},
 			method: http.MethodGet,
 		},
@@ -107,8 +133,19 @@ func TestGET(t *testing.T) {
 			// Запрос = / + токен
 			request := fmt.Sprintf("/%s", sToken)
 			log.Println(request)
-			statusCode, _, err := testRequest(t, ts, tt.method, request)
-			assert.Equal(t, tt.want.statusCode, statusCode)
+			req, err := http.NewRequest(tt.method, ts.URL+request, nil)
+			require.NoError(t, err)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			req.Header.Add("Accept-Encoding", "no")
+			client := new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("Redirect")
+			}
+			resp, err := client.Do(req)
+			//statusCode, _, err := testRequest(t, ts, tt.method, request)
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			require.Error(t, err)
 			log.Println(err.Error())
 			assert.Equal(t, tt.want.err, err.Error())
@@ -157,28 +194,6 @@ func TestJSON(t *testing.T) {
 	}
 }
 
-func testRequest(t *testing.T, ts *httptest.Server, method, request string) (int, string, error) {
-	var respBody []byte
-	var err error
-
-	req, err := http.NewRequest(method, ts.URL+request, nil)
-	require.NoError(t, err)
-	if err != nil {
-		log.Println(err.Error())
-	}
-
-	client := new(http.Client)
-	client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-		return errors.New("Redirect")
-	}
-	resp, err := client.Do(req)
-	if err == nil {
-		respBody, err = io.ReadAll(resp.Body)
-		defer resp.Body.Close()
-	}
-	return resp.StatusCode, string(respBody), err
-}
-
 func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request string) (int, []byte, string, error) {
 	var err error
 
@@ -195,6 +210,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	require.NoError(t, err)
 
 	req.Header.Set("Content-Type", contentType)
+	req.Header.Set("Accept-Encoding", "no")
 	client := new(http.Client)
 	resp, err := client.Do(req)
 	if err != nil {

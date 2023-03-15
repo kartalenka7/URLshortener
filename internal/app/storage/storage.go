@@ -46,20 +46,20 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 	_, urlParseErr := urlNet.Parse(sToken)
 	if urlParseErr != nil {
 		sToken = config.BaseURL + "/" + gToken
-		//fmt.Fprint(rw, sToken)
 		log.Printf("Short URL %s", sToken)
 	}
 
+	// in-memory
+	_, ok := s.linksMap[gToken]
+	if ok {
+		return "", errors.New("link already exists")
+	}
+	s.linksMap[gToken] = longURL
 	if config.File == "" {
-		_, ok := s.linksMap[gToken]
-		if ok {
-			return "", errors.New("link already exists")
-		}
-		s.linksMap[gToken] = longURL
 		return sToken, err
 	}
 
-	// запись в файл
+	// in-file
 	producer, err := NewProducer(config.File)
 	if err != nil {
 		log.Fatal(err)
@@ -67,7 +67,7 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 	defer producer.Close()
 
 	var links = LinksFile{
-		ShortURL: gToken,
+		ShortURL: sToken,
 		LongURL:  longURL,
 	}
 	log.Printf("Записываем в файл %s", links)
@@ -82,8 +82,10 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
 
+	longToken := config.BaseURL + sToken
+
 	if config.File == "" {
-		longURL, ok := s.linksMap[sToken]
+		longURL, ok := s.linksMap[longToken]
 		if !ok {
 			return "", errors.New("link is not found")
 		}
@@ -105,7 +107,7 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 			break
 		}
 		log.Println(readlinks)
-		if readlinks.ShortURL == sToken {
+		if readlinks.ShortURL == longToken {
 			fmt.Printf("Нашли в файле, %s\n", readlinks.LongURL)
 			return readlinks.LongURL, err
 		}
