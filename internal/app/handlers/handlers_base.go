@@ -16,50 +16,10 @@ type Server struct {
 	storage storage.StorageLinks
 }
 
-/* type GzipWriter struct {
-	http.ResponseWriter
-	Writer io.Writer
-}
-
-func (w GzipWriter) Write(b []byte) (int, error) {
-	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
-	return w.Writer.Write(b)
-} */
-
-// middleware принимает параметром Handler и возвращает тоже Handler
-/* func gzipHandle(next http.Handler) http.Handler {
-	log.Println("gzips")
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// проверяем, что клиент поддерживает gzip-сжатие
-		log.Printf("Заголовок до gzipHandle %s", r.Header)
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			// если gzip не поддерживается, передаём управление
-			// дальше без изменений
-			log.Println("not suited")
-			next.ServeHTTP(w, r)
-			return
-		}
-
-		// создаём gzip.Writer поверх текущего w
-		gz, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-		if err != nil {
-			io.WriteString(w, err.Error())
-			return
-		}
-		defer gz.Close()
-
-		w.Header().Set("Content-Encoding", "gzip")
-		log.Printf("Заголовок после GzipHandler, %s", w.Header())
-		// замыкание — используем ServeHTTP следующего хендлера
-		// передаём обработчику страницы переменную типа gzipWriter для вывода данных
-		next.ServeHTTP(GzipWriter{ResponseWriter: w, Writer: gz}, r)
-	})
-} */
-
 func gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Заголовок до gzipHandle %s", r.Header)
-		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Content-Encoding"), encodGzip) {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
 			log.Println("no gzip")
@@ -67,7 +27,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			return
 		}
 		if r.Method == http.MethodPost {
-			if r.Header.Get("Content-Type") != "application/json" {
+			if r.Header.Get("Content-Type") != contentTypeJSON {
 				// Распаковать длинный url из body с помощью gzip
 				gz, err := gzip.NewReader(r.Body)
 				if err != nil {
@@ -133,7 +93,5 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 		r.Get("/{id}", serv.getFullURL)
 		r.Post("/", serv.shortenURL)
 	})
-	// записываем ссылки из мапы и закрываем файл
-	s.WriteInFile()
 	return r
 }

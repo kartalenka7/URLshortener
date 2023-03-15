@@ -16,6 +16,7 @@ var (
 	paramID         = "id"
 	headerLocation  = "Location"
 	contentTypeJSON = "application/json"
+	encodGzip       = "gzip"
 )
 
 type Repository interface {
