@@ -144,6 +144,7 @@ func TestGET(t *testing.T) {
 				return errors.New("Redirect")
 			}
 			resp, err := client.Do(req)
+			resp.Body.Close()
 			//statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			require.Error(t, err)
