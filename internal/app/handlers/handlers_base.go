@@ -59,7 +59,7 @@ func (w GzipWriter) Write(b []byte) (int, error) {
 func gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Заголовок до gzipHandle %s", r.Header)
-		if !strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		if !strings.Contains(r.Header.Get("Content-Encoding"), "gzip") {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
 			log.Println("no gzip")
@@ -72,10 +72,8 @@ func gzipHandle(next http.Handler) http.Handler {
 				gz, err := gzip.NewReader(r.Body)
 				if err != nil {
 					log.Println(err.Error())
-					/* 	http.Error(w, err.Error(), http.StatusInternalServerError)
-					return */
-					log.Println("no gzip")
-					next.ServeHTTP(w, r)
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
 				}
 				defer gz.Close()
 				// при чтении вернётся распакованный слайс байт
