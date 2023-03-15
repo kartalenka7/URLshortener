@@ -71,6 +71,8 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	// записываем ссылки из мапы и закрываем файл
+	s.storage.WriteInFile()
 	// возвращаем длинный url в поле Location
 	rw.Header().Set(headerLocation, longURL)
 	log.Printf("Заголовок возврата %s \n", rw.Header())
