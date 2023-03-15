@@ -50,50 +50,63 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 	}
 
 	// in-memory
-	_, ok := s.linksMap[gToken]
+	_, ok := s.linksMap[sToken]
 	if ok {
 		return "", errors.New("link already exists")
 	}
-	s.linksMap[gToken] = longURL
-	if config.File == "" {
-		return sToken, err
-	}
+	s.linksMap[sToken] = longURL
+	//if config.File == "" {
+	return sToken, err
+	//}
 
 	// in-file
+	/* 	producer, err := NewProducer(config.File)
+	   	if err != nil {
+	   		log.Fatal(err)
+	   	}
+	   	defer producer.Close()
+
+	   	var links = LinksFile{
+	   		ShortURL: sToken,
+	   		LongURL:  longURL,
+	   	}
+	   	log.Printf("Записываем в файл %s", links)
+	   	log.Printf("Имя файла %s", config.File)
+	   	if err := producer.WriteLinks(&links); err != nil {
+	   		log.Println(err.Error())
+	   		log.Fatal(err)
+	   	} */
+	//return sToken, err
+}
+
+func (s StorageLinks) WriteInFile() {
+	if config.File == "" {
+		return
+	}
 	producer, err := NewProducer(config.File)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer producer.Close()
 
-	var links = LinksFile{
-		ShortURL: sToken,
-		LongURL:  longURL,
-	}
-	log.Printf("Записываем в файл %s", links)
 	log.Printf("Имя файла %s", config.File)
-	if err := producer.WriteLinks(&links); err != nil {
-		log.Println(err.Error())
-		log.Fatal(err)
+
+	for short, long := range s.linksMap {
+		var links = LinksFile{
+			ShortURL: short,
+			LongURL:  long,
+		}
+		if err := producer.WriteLinks(&links); err != nil {
+			log.Println(err.Error())
+			log.Fatal(err)
+		}
+		log.Printf("Записываем в файл %s", links)
 	}
-	return sToken, err
 }
 
-func (s StorageLinks) GetLongURL(sToken string) (string, error) {
-	var err error
-
-	longToken := config.BaseURL + sToken
-	_, urlParseErr := urlNet.Parse(longToken)
-	if urlParseErr != nil {
-		longToken = config.BaseURL + "/" + sToken
-	}
-	log.Printf("longToken %s", longToken)
+func (s StorageLinks) ReadFromFile() {
 	if config.File == "" {
-		longURL, ok := s.linksMap[longToken]
-		if !ok {
-			return "", errors.New("link is not found")
-		}
-		return longURL, err
+		return
 	}
 	//чтение из файла
 	log.Println("Читаем из файла")
@@ -111,11 +124,49 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 			break
 		}
 		log.Println(readlinks)
-		if readlinks.ShortURL == longToken {
-			fmt.Printf("Нашли в файле, %s\n", readlinks.LongURL)
-			return readlinks.LongURL, err
-		}
+		s.linksMap[readlinks.ShortURL] = readlinks.LongURL
 	}
 
-	return "", err
+}
+
+func (s StorageLinks) GetLongURL(sToken string) (string, error) {
+	var err error
+
+	longToken := config.BaseURL + sToken
+	_, urlParseErr := urlNet.Parse(longToken)
+	if urlParseErr != nil {
+		longToken = config.BaseURL + "/" + sToken
+	}
+	log.Printf("longToken %s", longToken)
+
+	//if config.File == "" {
+	longURL, ok := s.linksMap[longToken]
+	if !ok {
+		return "", errors.New("link is not found")
+	}
+	return longURL, err
+	//}
+	//чтение из файла
+	/* 	log.Println("Читаем из файла")
+	   	log.Printf("Имя файла %s", config.File)
+	   	consumer, err := NewConsumer(config.File)
+	   	if err != nil {
+	   		log.Fatal(err)
+	   	}
+	   	defer consumer.Close()
+
+	   	for {
+	   		readlinks, err := consumer.ReadLinks()
+	   		if err != nil {
+	   			fmt.Println(err.Error())
+	   			break
+	   		}
+	   		log.Println(readlinks)
+	   		if readlinks.ShortURL == longToken {
+	   			fmt.Printf("Нашли в файле, %s\n", readlinks.LongURL)
+	   			return readlinks.LongURL, err
+	   		}
+	   	}
+
+	   	return "", err */
 }

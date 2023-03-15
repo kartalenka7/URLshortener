@@ -16,7 +16,7 @@ type Server struct {
 	storage storage.StorageLinks
 }
 
-type GzipWriter struct {
+/* type GzipWriter struct {
 	http.ResponseWriter
 	Writer io.Writer
 }
@@ -24,7 +24,7 @@ type GzipWriter struct {
 func (w GzipWriter) Write(b []byte) (int, error) {
 	// w.Writer будет отвечать за gzip-сжатие, поэтому пишем в него
 	return w.Writer.Write(b)
-}
+} */
 
 // middleware принимает параметром Handler и возвращает тоже Handler
 /* func gzipHandle(next http.Handler) http.Handler {
@@ -119,6 +119,9 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 	serv := &Server{
 		storage: *s,
 	}
+	// открываем файл и читаем сохраненные ссылки
+	s.ReadFromFile()
+
 	log.Println("выбираем роутер")
 	// определяем роутер chi
 	r := chi.NewRouter()
@@ -130,5 +133,8 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 		r.Get("/{id}", serv.getFullURL)
 		r.Post("/", serv.shortenURL)
 	})
+
+	// записываем ссылки из мапы и закрываем файл
+	s.WriteInFile()
 	return r
 }
