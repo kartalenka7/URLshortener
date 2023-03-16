@@ -76,6 +76,8 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("Заголовок возврата %s \n", rw.Header())
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
 }
 
 type Request struct {
