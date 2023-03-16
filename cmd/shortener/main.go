@@ -6,7 +6,7 @@ import (
 
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
-	"example.com/shortener/internal/config"
+	config "example.com/shortener/internal/config"
 )
 
 var (
