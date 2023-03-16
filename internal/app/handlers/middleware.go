@@ -31,12 +31,13 @@ func gzipHandle(next http.Handler) http.Handler {
 		}
 
 		if r.Header.Get("Content-Encoding") == "gzip" {
-
 			// Распаковать длинный url из body с помощью gzip
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError)
+				/* log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError) */
+				log.Println("no gzip")
+				next.ServeHTTP(w, r)
 				return
 			}
 			defer gz.Close()
