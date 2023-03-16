@@ -75,6 +75,18 @@ func gzipHandle(next http.Handler) http.Handler {
 	})
 }
 
+func userAuth(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// получаем куки
+		_, err := r.Cookie("User")
+		if err != nil {
+			var Usercookie *http.Cookie
+			// куки не найдены, выдать пользователю симметрично подписанную куку
+			http.SetCookie(w, Usercookie)
+		}
+	})
+}
+
 func NewRouter(s *storage.StorageLinks) chi.Router {
 	serv := &Server{
 		storage: *s,
@@ -88,9 +100,17 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 
 	// создадим суброутер, который будет содержать две функции
 	r.Route("/", func(r chi.Router) {
+		// аутентификация пользователя
+		r.Use(userAuth)
+		// обработка сжатия gzip
 		r.Use(gzipHandle)
+		// сокращение URL в JSON формате
 		r.Post("/api/shorten", serv.shortenJSON)
+		// все URL пользователя, которые он сокращал
+		r.Get("/api/user/urls", serv.getUserURLs)
+		// получение полного URL по скоращенному
 		r.Get("/{id}", serv.getFullURL)
+		// сокращение URL
 		r.Post("/", serv.shortenURL)
 	})
 	return r

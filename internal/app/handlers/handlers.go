@@ -130,3 +130,9 @@ func (r *Response) ToJSON() *bytes.Buffer {
 	encoder.Encode(r)
 	return buf
 }
+
+func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
+	// не нашли сокращенных пользователем URL
+	rw.WriteHeader(http.StatusNoContent)
+	return
+}

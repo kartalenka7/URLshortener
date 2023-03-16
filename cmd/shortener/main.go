@@ -6,7 +6,7 @@ import (
 
 	handlers "example.com/shortener/internal/app/handlers"
 	storage "example.com/shortener/internal/app/storage"
-	utils "example.com/shortener/internal/config/utils"
+	"example.com/shortener/internal/config"
 )
 
 var (
@@ -14,16 +14,13 @@ var (
 )
 
 func main() {
-	var cfg utils.Config
-	var err error
 
-	storage := storage.NewStorage()
 	// получаем структуру с конфигурацией приложения
-	cfg, err = utils.GetConfig()
+	cfg, err := config.GetConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	storage.SetConfig(cfg)
+	storage := storage.NewStorage(cfg)
 	router := handlers.NewRouter(storage)
 
 	log.Println(cfg.Server)
