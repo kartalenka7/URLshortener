@@ -34,9 +34,8 @@ func gzipHandle(next http.Handler) http.Handler {
 			// Распаковать длинный url из body с помощью gzip
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				/* log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
-				http.Error(w, err.Error(), http.StatusInternalServerError) */
-				log.Println("no gzip")
+				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
 				next.ServeHTTP(w, r)
 				return
 			}

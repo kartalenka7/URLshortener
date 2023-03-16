@@ -49,14 +49,15 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
+
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
 	log.Printf("Short URL %s", gToken)
 
 	fmt.Fprint(rw, gToken)
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
 }
 
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
