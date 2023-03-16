@@ -49,11 +49,13 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
+
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
 	log.Printf("Short URL %s", gToken)
-
 	fmt.Fprint(rw, gToken)
 }
 
@@ -76,8 +78,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("Заголовок возврата %s \n", rw.Header())
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
+
 }
 
 type Request struct {
@@ -115,6 +116,9 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		ShortURL: gToken,
 	}
 	log.Printf("short url %s\n", response.ShortURL)
+
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 	// возвращаем ответ с кодом 201

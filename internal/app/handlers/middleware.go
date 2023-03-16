@@ -75,7 +75,7 @@ func gzipHandle(next http.Handler) http.Handler {
 
 		}
 
-		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
+		/* 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
 			w.Header().Set("Content-Encoding", "gzip")
 			// создаём gzip.Writer поверх текущего w
 			gzWriter, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
@@ -85,7 +85,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			}
 			defer gzWriter.Close()
 			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzWriter}, r)
-		}
+		} */
 
 		// замыкание — используем ServeHTTP следующего хендлера
 		next.ServeHTTP(w, r)
