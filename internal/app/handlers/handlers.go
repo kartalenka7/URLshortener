@@ -34,6 +34,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
+		log.Printf("handlers|shortenURL|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -43,7 +44,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(url)
 	if err != nil {
-		log.Println(err.Error())
+		log.Printf("handlers|AddLink|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -67,7 +68,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	// получаем длинный url
 	longURL, err := s.storage.GetLongURL(shortURL)
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Printf("handlers|getFullURL|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -96,6 +97,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	//десериализация
 	requestJSON := Request{}
 	if err := decoder.Decode(&requestJSON); err != nil {
+		log.Printf("handlers|shortenJSON|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -103,6 +105,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(requestJSON.LongURL)
 	if err != nil {
+		log.Printf("handlers|shortenJSON|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -120,6 +123,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, response.ToJSON())
 	// записываем ссылки из мапы в файл
 	s.storage.WriteInFile()
+
 }
 
 func (r *Response) ToJSON() *bytes.Buffer {

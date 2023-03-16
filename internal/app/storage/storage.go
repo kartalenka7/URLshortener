@@ -30,7 +30,7 @@ func NewStorage(cfg config.Config) *StorageLinks {
 	links.config = cfg
 	// открываем файл и читаем сохраненные ссылки
 	if links.config.File != "" {
-		links.ReadFromFile()
+		ReadFromFile(links)
 	}
 	return links
 }
@@ -84,7 +84,7 @@ func (s StorageLinks) WriteInFile() {
 	}
 }
 
-func (s StorageLinks) ReadFromFile() {
+func ReadFromFile(s *StorageLinks) {
 
 	//чтение из файла
 	log.Println("Читаем из файла")
