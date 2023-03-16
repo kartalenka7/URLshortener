@@ -91,8 +91,6 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 	serv := &Server{
 		storage: *s,
 	}
-	// открываем файл и читаем сохраненные ссылки
-	s.ReadFromFile()
 
 	log.Println("выбираем роутер")
 	// определяем роутер chi
@@ -101,7 +99,7 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 	// создадим суброутер, который будет содержать две функции
 	r.Route("/", func(r chi.Router) {
 		// аутентификация пользователя
-		r.Use(userAuth)
+		//r.Use(userAuth)
 		// обработка сжатия gzip
 		r.Use(gzipHandle)
 		// сокращение URL в JSON формате

@@ -28,8 +28,6 @@ type Repository interface {
 // Структура для парсинга переменных окружения
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
-	var url string
-	var err error
 	log.Println("shorten URL")
 
 	// Читаем строку URL из body
@@ -39,7 +37,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	url = strings.Replace(string(b), "url=", "", 1)
+	url := strings.Replace(string(b), "url=", "", 1)
 	log.Printf("long url %s\n", url)
 
 	// добавляем длинный url в хранилище, генерируем токен
@@ -56,10 +54,11 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("Short URL %s", gToken)
 
 	fmt.Fprint(rw, gToken)
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
 }
 
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
-	var err error
 	log.Println("Get full url")
 
 	//получаем сокращенный url из параметра
@@ -72,8 +71,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	// записываем ссылки из мапы и закрываем файл
-	s.storage.WriteInFile()
+
 	// возвращаем длинный url в поле Location
 	rw.Header().Set(headerLocation, longURL)
 	log.Printf("Заголовок возврата %s \n", rw.Header())
@@ -90,13 +88,13 @@ type Response struct {
 }
 
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
-	var requestJSON Request
 
 	log.Println("POST JSON")
 	// чтение JSON объекта из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
 	//десериализация
+	requestJSON := Request{}
 	if err := decoder.Decode(&requestJSON); err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
@@ -120,6 +118,8 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL
 	fmt.Fprint(rw, response.ToJSON())
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
 }
 
 func (r *Response) ToJSON() *bytes.Buffer {

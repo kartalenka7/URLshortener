@@ -17,7 +17,8 @@ cmd/shortener/main
 cmd/shortener/shortener
 
 #logs
-cmd/shortener/links.log
+cmd/shortener/link.log
+internal/app/storage.link.log
 
 # Dependency directories (remove the comment below to include it)
 vendor/

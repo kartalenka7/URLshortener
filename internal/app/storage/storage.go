@@ -8,6 +8,7 @@ import (
 
 	urlNet "net/url"
 
+	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
 
@@ -15,37 +16,37 @@ import (
 
 type StorageLinks struct {
 	linksMap map[string]string
+	config   config.Config
 }
 
-type LinksFile struct {
+// Структура для записи в файл
+type LinksData struct {
 	ShortURL string `json:"short"`
 	LongURL  string `json:"long"`
 }
 
-var config utils.Config
-
-func NewStorage() *StorageLinks {
-	return &StorageLinks{
-		linksMap: make(map[string]string),
+func NewStorage(cfg config.Config) *StorageLinks {
+	links := &StorageLinks{linksMap: make(map[string]string)}
+	links.config = cfg
+	// открываем файл и читаем сохраненные ссылки
+	if links.config.File != "" {
+		links.ReadFromFile()
 	}
+	return links
 }
 
 func (s StorageLinks) GetStorageLen() int {
 	return len(s.linksMap)
 }
 
-func (s StorageLinks) SetConfig(cfg utils.Config) {
-	config = cfg
-}
-
 func (s StorageLinks) AddLink(longURL string) (string, error) {
 	var err error
 	gToken := utils.RandStringBytes(10)
 	log.Println(gToken)
-	sToken := config.BaseURL + gToken
+	sToken := s.config.BaseURL + gToken
 	_, urlParseErr := urlNet.Parse(sToken)
 	if urlParseErr != nil {
-		sToken = config.BaseURL + "/" + gToken
+		sToken = s.config.BaseURL + "/" + gToken
 		log.Printf("Short URL %s", sToken)
 	}
 
@@ -59,19 +60,19 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 }
 
 func (s StorageLinks) WriteInFile() {
-	if config.File == "" {
+	if s.config.File == "" {
 		return
 	}
-	producer, err := NewProducer(config.File)
+	producer, err := NewProducer(s.config.File)
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer producer.Close()
 	log.Println("Записываем в файл")
-	log.Printf("Имя файла %s", config.File)
+	log.Printf("Имя файла %s", s.config.File)
 
 	for short, long := range s.linksMap {
-		var links = LinksFile{
+		var links = LinksData{
 			ShortURL: short,
 			LongURL:  long,
 		}
@@ -84,13 +85,11 @@ func (s StorageLinks) WriteInFile() {
 }
 
 func (s StorageLinks) ReadFromFile() {
-	if config.File == "" {
-		return
-	}
+
 	//чтение из файла
 	log.Println("Читаем из файла")
-	log.Printf("Имя файла %s", config.File)
-	consumer, err := NewConsumer(config.File)
+	log.Printf("Имя файла %s", s.config.File)
+	consumer, err := NewConsumer(s.config.File)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -111,10 +110,10 @@ func (s StorageLinks) ReadFromFile() {
 func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	var err error
 
-	longToken := config.BaseURL + sToken
+	longToken := s.config.BaseURL + sToken
 	_, urlParseErr := urlNet.Parse(longToken)
 	if urlParseErr != nil {
-		longToken = config.BaseURL + "/" + sToken
+		longToken = s.config.BaseURL + "/" + sToken
 	}
 	log.Printf("longToken %s", longToken)
 

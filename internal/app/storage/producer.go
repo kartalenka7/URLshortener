@@ -12,7 +12,7 @@ type producer struct {
 
 func NewProducer(filename string) (*producer, error) {
 	// открываем файл для записи в конец
-	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
+	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 664)
 	if err != nil {
 		return nil, err
 	}
@@ -28,6 +28,6 @@ func (p *producer) Close() error {
 	return p.file.Close()
 }
 
-func (p *producer) WriteLinks(links *LinksFile) error {
+func (p *producer) WriteLinks(links *LinksData) error {
 	return p.encoder.Encode(&links)
 }

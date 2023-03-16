@@ -11,7 +11,7 @@ type consumer struct {
 }
 
 func NewConsumer(filename string) (*consumer, error) {
-	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 07664)
+	file, err := os.OpenFile(filename, os.O_RDONLY|os.O_CREATE, 664)
 	if err != nil {
 		return nil, err
 	}
@@ -22,8 +22,8 @@ func NewConsumer(filename string) (*consumer, error) {
 	}, nil
 }
 
-func (c *consumer) ReadLinks() (*LinksFile, error) {
-	links := &LinksFile{}
+func (c *consumer) ReadLinks() (*LinksData, error) {
+	links := &LinksData{}
 	if err := c.decoder.Decode(&links); err != nil {
 		return nil, err
 	}
