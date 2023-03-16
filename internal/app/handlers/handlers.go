@@ -49,9 +49,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
-
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 	// пишем в тело ответа сокращенный URL
@@ -123,8 +120,6 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL
 	fmt.Fprint(rw, response.ToJSON())
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
 
 }
 

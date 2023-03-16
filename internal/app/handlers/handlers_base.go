@@ -35,5 +35,8 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 		// сокращение URL
 		r.Post("/", serv.shortenURL)
 	})
+
+	// записываем ссылки из мапы в файл
+	s.WriteInFile()
 	return r
 }
