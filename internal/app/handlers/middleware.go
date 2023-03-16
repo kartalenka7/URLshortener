@@ -51,42 +51,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			// пишем в тело распакованный url и передаем дальше в хэндлеры
 			r.Body = io.NopCloser(strings.NewReader(string(b)))
 
-			/* 			//получаем сокращенный url из параметра
-			   			shortURL := chi.URLParam(r, paramID)
-			   			log.Printf("short url before gzip %s\n", shortURL)
-
-			   			gz, err = gzip.NewReader(strings.NewReader(shortURL))
-			   			if err != nil {
-			   				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
-			   				http.Error(w, err.Error(), http.StatusInternalServerError)
-			   				return
-			   			}
-			   			defer gz.Close()
-			   			short, err := io.ReadAll(gz)
-			   			if err != nil {
-			   				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
-			   				http.Error(w, err.Error(), http.StatusInternalServerError)
-			   				return
-			   			}
-			   			log.Printf("short url after gzip %s\n", string(short))
-			   			// записываем распакованный короткий URL в качестве параметра "id"
-			   			// и передаем дальше в хэндлеры
-			   			chi.NewRouteContext().URLParams.Add(paramID, string(short)) */
-
 		}
-
-		/* 		if strings.Contains(r.Header.Get("Accept-Encoding"), "gzip") {
-			w.Header().Set("Content-Encoding", "gzip")
-			// создаём gzip.Writer поверх текущего w
-			gzWriter, err := gzip.NewWriterLevel(w, gzip.BestSpeed)
-			if err != nil {
-				io.WriteString(w, err.Error())
-				return
-			}
-			defer gzWriter.Close()
-			next.ServeHTTP(gzipWriter{ResponseWriter: w, Writer: gzWriter}, r)
-		} */
-
 		// замыкание — используем ServeHTTP следующего хендлера
 		next.ServeHTTP(w, r)
 	})
