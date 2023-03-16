@@ -102,6 +102,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	log.Printf("request json %s\n", requestJSON)
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, err := s.storage.AddLink(requestJSON.LongURL)
 	if err != nil {
