@@ -15,18 +15,22 @@ import (
 // слой хранилища
 
 type StorageLinks struct {
-	linksMap map[string]string
-	config   config.Config
+	linksMap   map[string]string
+	cookiesMap map[string]string
+	config     config.Config
 }
 
 // Структура для записи в файл
 type LinksData struct {
 	ShortURL string `json:"short"`
 	LongURL  string `json:"long"`
+	User     string `json:"user"`
 }
 
 func NewStorage(cfg config.Config) *StorageLinks {
-	links := &StorageLinks{linksMap: make(map[string]string)}
+	links := &StorageLinks{
+		linksMap:   make(map[string]string),
+		cookiesMap: map[string]string{}}
 	links.config = cfg
 	// открываем файл и читаем сохраненные ссылки
 	if links.config.File != "" {
@@ -59,7 +63,7 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 	return sToken, err
 }
 
-func (s StorageLinks) WriteInFile() {
+func (s StorageLinks) WriteInFile(user string) {
 	if s.config.File == "" {
 		return
 	}
@@ -75,6 +79,7 @@ func (s StorageLinks) WriteInFile() {
 		var links = LinksData{
 			ShortURL: short,
 			LongURL:  long,
+			User:     user,
 		}
 		if err := producer.WriteLinks(&links); err != nil {
 			log.Println(err.Error())
@@ -103,8 +108,20 @@ func ReadFromFile(s *StorageLinks) {
 		}
 		log.Println(readlinks)
 		s.linksMap[readlinks.ShortURL] = readlinks.LongURL
+		s.cookiesMap[readlinks.ShortURL] = readlinks.User
 	}
 
+}
+
+func (s StorageLinks) GetAllURLS(cookie string) map[string]string {
+	userLinks := make(map[string]string)
+	for short, user := range s.cookiesMap {
+		if user != cookie {
+			continue
+		}
+		userLinks[short] = s.linksMap[short]
+	}
+	return userLinks
 }
 
 func (s StorageLinks) GetLongURL(sToken string) (string, error) {

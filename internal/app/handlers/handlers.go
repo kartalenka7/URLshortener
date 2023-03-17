@@ -49,8 +49,14 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
+	user, err := req.Cookie("User")
+	if err != nil {
+		log.Printf("handlers|shortenURL|%s\n", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
 	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
+	s.storage.WriteInFile(user.Value)
 
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
@@ -111,14 +117,20 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	user, err := req.Cookie("User")
+	if err != nil {
+		log.Printf("handlers|shortenJSON|%s\n", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile(user.Value)
+
 	// формируем json объект ответа
 	response := Response{
 		ShortURL: gToken,
 	}
 	log.Printf("short url %s\n", response.ShortURL)
-
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 	// возвращаем ответ с кодом 201
@@ -138,7 +150,48 @@ func (r *Response) ToJSON() *bytes.Buffer {
 	return buf
 }
 
+type CookiesURL struct {
+	ShortURL string `json:"short_url"`
+	OrigURL  string `json:"original_url"`
+}
+
+type cookies struct {
+	URLs []*CookiesURL
+}
+
 func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
-	// не нашли сокращенных пользователем URL
-	rw.WriteHeader(http.StatusNoContent)
+	user, err := req.Cookie("User")
+	if err != nil {
+		log.Printf("handlers|getUserURLs|%s\n", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	links := s.storage.GetAllURLS(user.Value)
+
+	if len(links) == 0 {
+		// не нашли сокращенных пользователем URL
+		rw.WriteHeader(http.StatusNoContent)
+		return
+	}
+	var urls []*CookiesURL
+	// формируем json объект ответа
+	for short, long := range links {
+		urls = append(urls, &CookiesURL{
+			ShortURL: short,
+			OrigURL:  long})
+		fmt.Printf("Возвращаемые url для текущего пользователя %s\n", &CookiesURL{
+			ShortURL: short,
+			OrigURL:  long})
+	}
+
+	rw.Header().Set("Content-Type", contentTypeJSON)
+	// возвращаем ответ с кодом 201
+	rw.WriteHeader(http.StatusCreated)
+
+	// пишем в тело ответа закодированные JSON
+	buf := bytes.NewBuffer([]byte{})
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(urls)
+	fmt.Fprint(rw, buf)
 }

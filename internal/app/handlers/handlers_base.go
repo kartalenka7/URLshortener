@@ -23,7 +23,7 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 	// создадим суброутер, который будет содержать две функции
 	r.Route("/", func(r chi.Router) {
 		// аутентификация пользователя
-		//r.Use(userAuth)
+		r.Use(userAuth)
 		// обработка сжатия gzip
 		r.Use(gzipHandle)
 		// сокращение URL в JSON формате

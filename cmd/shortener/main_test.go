@@ -76,6 +76,12 @@ func TestPOST(t *testing.T) {
 			}
 			req.Header.Add("Content-Encoding", "gzip")
 			req.Header.Add("Accept-Encoding", "gzip")
+
+			cookie := &http.Cookie{
+				Name:  "User",
+				Value: "12",
+			}
+			req.AddCookie(cookie)
 			client := new(http.Client)
 			resp, err := client.Do(req)
 			require.NoError(t, err)
@@ -209,6 +215,11 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 
 	req.Header.Set("Content-Type", contentType)
 	req.Header.Set("Accept-Encoding", "no")
+	cookie := &http.Cookie{
+		Name:  "User",
+		Value: "12",
+	}
+	req.AddCookie(cookie)
 	client := new(http.Client)
 	resp, err := client.Do(req)
 	if err != nil {

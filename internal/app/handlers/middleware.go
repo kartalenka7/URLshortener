@@ -7,6 +7,8 @@ import (
 
 	"compress/gzip"
 	"net/http"
+
+	"example.com/shortener/internal/config/utils"
 )
 
 func gzipHandle(next http.Handler) http.Handler {
@@ -52,9 +54,21 @@ func userAuth(next http.Handler) http.Handler {
 		// получаем куки
 		_, err := r.Cookie("User")
 		if err != nil {
-			var Usercookie *http.Cookie
+			cookie, err := utils.GenerateCookies()
+			if err != nil {
+				log.Printf("handlers_base|userAuth|%s\n", err.Error())
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			Usercookie := http.Cookie{
+				Name:  "User",
+				Value: string(cookie),
+			}
 			// куки не найдены, выдать пользователю симметрично подписанную куку
-			http.SetCookie(w, Usercookie)
+			http.SetCookie(w, &Usercookie)
 		}
+
+		// замыкание — используем ServeHTTP следующего хендлера
+		next.ServeHTTP(w, r)
 	})
 }
