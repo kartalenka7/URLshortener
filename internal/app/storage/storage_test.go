@@ -3,6 +3,7 @@ package storage
 import (
 	"testing"
 
+	"example.com/shortener/internal/config"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -13,11 +14,21 @@ func TestStorage(t *testing.T) {
 	tests := []struct {
 		name    string
 		longURL string
+		file    string
 		want    want
 	}{
 		{
 			name:    "Simple add and get",
 			longURL: "https://www.youtube.com/",
+			file:    "",
+			want: want{
+				tokenLen: 10,
+			},
+		},
+		{
+			name:    "Add and get from file links.log",
+			longURL: "https://www.youtube.com/",
+			file:    "links.log",
 			want: want{
 				tokenLen: 10,
 			},
@@ -25,7 +36,7 @@ func TestStorage(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			s := NewStorage()
+			s := NewStorage(config.Config{File: tt.file})
 			// Добавляем ссылку в хранилище
 			gToken, err := s.AddLink(tt.longURL)
 			if err != nil {
@@ -37,8 +48,10 @@ func TestStorage(t *testing.T) {
 			tokenLen := len(gToken)
 			assert.Equal(t, tokenLen, 10)
 
-			// Проверяем, что добавлена одна запись
-			assert.Equal(t, s.GetStorageLen(), 1)
+			// Проверяем, что добавлена одна запись (для варианта с сохранением в память)
+			if tt.file == "" {
+				assert.Equal(t, s.GetStorageLen(), 1)
+			}
 
 			// Получаем ссылку
 			got, err := s.GetLongURL(gToken)
