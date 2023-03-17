@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"strings"
@@ -64,8 +65,9 @@ func userAuth(next http.Handler) http.Handler {
 				Name:  "User",
 				Value: string(cookie),
 			}
+			fmt.Printf("Сгенерированы куки %s\n", &Usercookie)
 			// куки не найдены, выдать пользователю симметрично подписанную куку
-			http.SetCookie(w, &Usercookie)
+			r.AddCookie(&Usercookie)
 		}
 
 		// замыкание — используем ServeHTTP следующего хендлера
