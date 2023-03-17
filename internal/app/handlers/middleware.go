@@ -55,15 +55,12 @@ func userAuth(next http.Handler) http.Handler {
 		// получаем куки
 		_, err := r.Cookie("User")
 		if err != nil {
-			cookie, err := utils.GenerateCookies()
+			Usercookie := http.Cookie{}
+			err := utils.GenerateCookies(Usercookie)
 			if err != nil {
 				log.Printf("handlers_base|userAuth|%s\n", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
-			}
-			Usercookie := http.Cookie{
-				Name:  "User",
-				Value: string(cookie),
 			}
 			fmt.Printf("Сгенерированы куки %s\n", &Usercookie)
 			// куки не найдены, выдать пользователю симметрично подписанную куку

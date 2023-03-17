@@ -5,6 +5,7 @@ import (
 	crypto "crypto/rand"
 	"crypto/sha256"
 	"math/rand"
+	"net/http"
 	"time"
 )
 
@@ -27,17 +28,17 @@ func RandStringBytes(n int) string {
 	return string(link)
 }
 
-func GenerateCookies() ([]byte, error) {
-	// сгенерировать криптостойкий слайс случайных байты
-	b := make([]byte, 512)
-	_, err := crypto.Read(b)
+func GenerateCookies(cookie http.Cookie) error {
+	// сгенерировать криптостойкий слайс случайных байт
+	key := make([]byte, 8)
+	_, err := crypto.Read(key)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	key := (b[:4])
 	// подписываем алгоритмом HMAC, используя SHA256
 	h := hmac.New(sha256.New, key)
-	h.Write(b)
-	dst := h.Sum(nil)
-	return dst, nil
+	h.Write([]byte(cookie.Value))
+	sign := h.Sum(nil)
+	cookie.Value = string(sign) + cookie.Value
+	return nil
 }
