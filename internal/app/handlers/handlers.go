@@ -52,11 +52,11 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	user, err := req.Cookie("User")
 	if err != nil {
 		log.Printf("handlers|shortenURL|%s\n", err.Error())
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
+		s.storage.WriteInFile("")
+	} else {
+		// записываем ссылки из мапы в файл
+		s.storage.WriteInFile(user.Value)
 	}
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile(user.Value)
 
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
@@ -120,11 +120,11 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	user, err := req.Cookie("User")
 	if err != nil {
 		log.Printf("handlers|shortenJSON|%s\n", err.Error())
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
+		s.storage.WriteInFile("")
+	} else {
+		// записываем ссылки из мапы в файл
+		s.storage.WriteInFile(user.Value)
 	}
-	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile(user.Value)
 
 	// формируем json объект ответа
 	response := Response{
