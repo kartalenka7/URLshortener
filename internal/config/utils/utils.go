@@ -28,7 +28,7 @@ func RandStringBytes(n int) string {
 	return string(link)
 }
 
-func GenerateCookies(cookie http.Cookie) error {
+func GenerateCookies(cookie *http.Cookie) error {
 	// сгенерировать криптостойкий слайс случайных байт
 	key := make([]byte, 8)
 	_, err := crypto.Read(key)
