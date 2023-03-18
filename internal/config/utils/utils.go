@@ -28,17 +28,18 @@ func RandStringBytes(n int) string {
 	return string(link)
 }
 
-func GenerateCookies(cookie *http.Cookie) error {
+func GenerateCookies() (http.Cookie, error) {
+	var cookie http.Cookie
 	// сгенерировать криптостойкий слайс случайных байт
 	key := make([]byte, 8)
 	_, err := crypto.Read(key)
 	if err != nil {
-		return err
+		return cookie, err
 	}
 	// подписываем алгоритмом HMAC, используя SHA256
 	h := hmac.New(sha256.New, key)
 	h.Write([]byte(cookie.Value))
 	sign := h.Sum(nil)
 	cookie.Value = string(sign) + cookie.Value
-	return nil
+	return cookie, nil
 }

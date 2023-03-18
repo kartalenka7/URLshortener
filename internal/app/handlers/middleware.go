@@ -56,7 +56,7 @@ func userAuth(next http.Handler) http.Handler {
 		_, err := r.Cookie("User")
 		if err != nil {
 			Usercookie := http.Cookie{}
-			err := utils.GenerateCookies(Usercookie)
+			Usercookie, err := utils.GenerateCookies()
 			if err != nil {
 				log.Printf("handlers_base|userAuth|%s\n", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
