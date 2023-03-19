@@ -85,7 +85,6 @@ func (s StorageLinks) WriteInFile(user string) {
 			log.Println(err.Error())
 			log.Fatal(err)
 		}
-		log.Printf("Записываем в файл %s", links)
 	}
 }
 
@@ -106,7 +105,6 @@ func ReadFromFile(s *StorageLinks) {
 			fmt.Println(err.Error())
 			break
 		}
-		log.Println(readlinks)
 		s.linksMap[readlinks.ShortURL] = readlinks.LongURL
 		s.cookiesMap[readlinks.ShortURL] = readlinks.User
 	}

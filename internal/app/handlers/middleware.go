@@ -14,7 +14,6 @@ import (
 
 func gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Заголовок до gzipHandle %s", r.Header)
 		if !strings.Contains(r.Header.Get("Content-Encoding"), encodGzip) {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
@@ -40,7 +39,6 @@ func gzipHandle(next http.Handler) http.Handler {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("long url after gzip %s\n", string(b))
 			// пишем в тело распакованный url и передаем дальше в хэндлеры
 			r.Body = io.NopCloser(strings.NewReader(string(b)))
 
