@@ -49,13 +49,13 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	user, err := req.Cookie("User")
+	cookie, err := req.Cookie("User")
 	if err != nil {
 		log.Printf("handlers|shortenURL|%s\n", err.Error())
 		s.storage.WriteInFile("")
 	} else {
 		// записываем ссылки из мапы в файл
-		s.storage.WriteInFile(user.Value)
+		s.storage.WriteInFile(cookie.Value)
 	}
 
 	// возвращаем ответ с кодом 201

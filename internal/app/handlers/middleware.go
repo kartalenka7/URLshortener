@@ -52,11 +52,12 @@ func gzipHandle(next http.Handler) http.Handler {
 
 func userAuth(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		// получаем куки
-		_, err := r.Cookie("User")
+		cookie, err := r.Cookie("User")
 		if err != nil {
 			Usercookie := http.Cookie{}
-			Usercookie, err := utils.GenerateCookies()
+			Usercookie, err := utils.WriteCookies()
 			if err != nil {
 				log.Printf("handlers_base|userAuth|%s\n", err.Error())
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -65,6 +66,15 @@ func userAuth(next http.Handler) http.Handler {
 			fmt.Printf("Сгенерированы куки %s\n", &Usercookie)
 			// куки не найдены, выдать пользователю симметрично подписанную куку
 			r.AddCookie(&Usercookie)
+			next.ServeHTTP(w, r)
+			return
+		}
+		log.Printf("Нашли куки %s\n", cookie)
+		err = utils.ReadCookies(*cookie)
+		if err != nil {
+			log.Printf("handlers_base|userAuth|%s\n", err.Error())
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
 		}
 
 		// замыкание — используем ServeHTTP следующего хендлера
