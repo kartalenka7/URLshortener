@@ -54,6 +54,7 @@ func userAuth(next http.Handler) http.Handler {
 		// получаем куки
 		cookie, err := r.Cookie("User")
 		if err != nil {
+			fmt.Println("Не нашли куки User")
 			Usercookie := http.Cookie{}
 			Usercookie, err := utils.WriteCookies()
 			if err != nil {
@@ -63,9 +64,9 @@ func userAuth(next http.Handler) http.Handler {
 			}
 			// куки не найдены, выдать пользователю симметрично подписанную куку
 			log.Printf("куки %s\n", &Usercookie)
+			http.SetCookie(w, &Usercookie)
 			next.ServeHTTP(w, r)
-			fmt.Printf("Возвращены куки %s\n", &Usercookie)
-			r.AddCookie(&Usercookie)
+
 			return
 		}
 		log.Printf("Нашли куки %s\n", cookie)
