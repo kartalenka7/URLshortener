@@ -63,6 +63,7 @@ func userAuth(next http.Handler) http.Handler {
 			}
 			fmt.Printf("Сгенерированы куки %s\n", &Usercookie)
 			// куки не найдены, выдать пользователю симметрично подписанную куку
+			log.Printf("куки %s\n", &Usercookie)
 			r.AddCookie(&Usercookie)
 			next.ServeHTTP(w, r)
 			return

@@ -58,7 +58,6 @@ func WriteCookies() (http.Cookie, error) {
 	}
 	// подписываем алгоритмом HMAC, используя SHA256
 	h := hmac.New(sha256.New, secretkey)
-	h.Write([]byte(cookie.Name))
 	h.Write([]byte(cookie.Value))
 	log.Printf("cookie.Value %s\n", cookie.Value)
 	sign := h.Sum(nil)
@@ -80,7 +79,6 @@ func ReadCookies(cookie http.Cookie) error {
 	value := signedValue[sha256.Size:]
 
 	mac := hmac.New(sha256.New, secretkey)
-	mac.Write([]byte("User"))
 	mac.Write([]byte(value))
 	expectedSignature := mac.Sum(nil)
 
