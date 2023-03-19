@@ -62,7 +62,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(http.StatusCreated)
 
 	fmt.Printf("Возвращены куки %s\n", cookie)
-	http.SetCookie(rw, cookie)
+	req.AddCookie(cookie)
 
 	// пишем в тело ответа сокращенный URL
 	log.Printf("Short URL %s", gToken)
