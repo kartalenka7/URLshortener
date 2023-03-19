@@ -6,6 +6,7 @@ import (
 	"crypto/sha256"
 	"encoding/base64"
 	"encoding/hex"
+	"errors"
 	"log"
 	"math/rand"
 	"net/http"
@@ -84,7 +85,7 @@ func ReadCookies(cookie http.Cookie) error {
 	expectedSignature := mac.Sum(nil)
 
 	if !hmac.Equal([]byte(signature), expectedSignature) {
-		log.Printf("handlers_base|userAuth|%s\n", err.Error())
+		log.Printf("handlers_base|userAuth|%s\n", errors.New("link already exists"))
 		return err
 	}
 	return nil
