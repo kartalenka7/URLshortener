@@ -37,23 +37,20 @@ func NewStorage(cfg config.Config) *StorageLinks {
 	links.config = cfg
 	if links.config.Database != "" {
 		db, err := InitTable(links.config.Database)
-		if err != nil {
-			log.Printf("database|Create table|%s\n", err.Error())
-			return nil
-		}
-		links.db = db
+		if err == nil {
+			links.db = db
+			linksDB, err := SelectLines(links.config.Database, 100)
+			if err != nil {
+				log.Printf("database|Select lines|%s\n", err.Error())
+				return nil
+			}
 
-		linksDB, err := SelectLines(links.config.Database, 100)
-		if err != nil {
-			log.Printf("database|Select lines|%s\n", err.Error())
-			return nil
+			for _, link := range linksDB {
+				links.linksMap[link.ShortURL] = links.linksMap[link.LongURL]
+				links.cookiesMap[link.ShortURL] = links.cookiesMap[link.User]
+			}
+			return links
 		}
-
-		for _, link := range linksDB {
-			links.linksMap[link.ShortURL] = links.linksMap[link.LongURL]
-			links.cookiesMap[link.ShortURL] = links.cookiesMap[link.User]
-		}
-		return links
 	}
 	// открываем файл и читаем сохраненные ссылки
 	if links.config.File != "" {
