@@ -275,6 +275,7 @@ func TestPing(t *testing.T) {
 			req.Header.Add("Accept-Encoding", "no")
 			client := new(http.Client)
 			resp, err := client.Do(req)
+			require.NoError(t, err)
 			resp.Body.Close()
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 		})
