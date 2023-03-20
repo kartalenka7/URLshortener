@@ -176,12 +176,14 @@ type cookies struct {
 }
 
 func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
+	log.Println("Get all urls for user")
 	user, err := req.Cookie("User")
 	if err != nil {
 		log.Printf("handlers|getUserURLs|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("куки value %s\n", user.Value)
 	links := s.storage.GetAllURLS(user.Value)
 
 	if len(links) == 0 {
