@@ -219,8 +219,8 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 	log.Printf("Возвращаемый заголовок %s\n", rw.Header())
-	// возвращаем ответ с кодом 201
-	rw.WriteHeader(http.StatusCreated)
+	// возвращаем ответ с кодом 200
+	rw.WriteHeader(http.StatusOK)
 
 	// пишем в тело ответа закодированные JSON
 	buf := bytes.NewBuffer([]byte{})
