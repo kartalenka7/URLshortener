@@ -28,10 +28,11 @@ var jar *cookiejar.Jar
 
 func init() {
 	cfg = config.Config{
-		BaseURL:  "http://localhost:8080/",
-		Server:   "localhost:8080",
-		File:     "link.log",
-		Database: "postgres://habruser:habr@localhost:5432/habrdb",
+		BaseURL: "http://localhost:8080/",
+		Server:  "localhost:8080",
+		File:    "link.log",
+		//Database: "postgres://habruser:habr@localhost:5432/habrdb",
+		Database: "user=habruser password=habr host=localhost port=5432 database=habrdb sslmode=disable",
 	}
 
 	jar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
@@ -280,4 +281,5 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 		})
 	}
-} */
+}
+*/

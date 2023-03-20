@@ -8,6 +8,8 @@ import (
 
 	urlNet "net/url"
 
+	"database/sql"
+
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
@@ -18,6 +20,7 @@ type StorageLinks struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
 	config     config.Config
+	db         *sql.DB
 }
 
 // Структура для записи в файл
@@ -32,6 +35,26 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		linksMap:   make(map[string]string),
 		cookiesMap: map[string]string{}}
 	links.config = cfg
+	if links.config.Database != "" {
+		db, err := InitTable(links.config.Database)
+		if err != nil {
+			log.Printf("database|Create table|%s\n", err.Error())
+			return nil
+		}
+		links.db = db
+
+		linksDB, err := SelectLines(links.config.Database, 100)
+		if err != nil {
+			log.Printf("database|Select lines|%s\n", err.Error())
+			return nil
+		}
+
+		for _, link := range linksDB {
+			links.linksMap[link.ShortURL] = links.linksMap[link.LongURL]
+			links.cookiesMap[link.ShortURL] = links.cookiesMap[link.User]
+		}
+		return links
+	}
 	// открываем файл и читаем сохраненные ссылки
 	if links.config.File != "" {
 		ReadFromFile(links)
@@ -52,6 +75,10 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	if urlParseErr != nil {
 		sToken = s.config.BaseURL + "/" + gToken
 		log.Printf("Short URL %s", sToken)
+	}
+
+	if s.config.Database != "" {
+		InsertLine(s.config.Database, sToken, longURL, user)
 	}
 
 	// in-memory

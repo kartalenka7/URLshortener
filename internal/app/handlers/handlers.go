@@ -10,10 +10,13 @@ import (
 	"strings"
 
 	"context"
+	"database/sql"
 	"time"
 
+	//_ "github.com/jackc/pgx/v4"
+	_ "github.com/lib/pq"
+
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5"
 )
 
 var (
@@ -233,17 +236,21 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 func (s *Server) PostgresConnection(rw http.ResponseWriter, req *http.Request) {
 	log.Println("Ping")
 	connString := s.storage.GetConnSrtring()
-	db, err := pgx.Connect(context.Background(), connString)
+	//db, err := pgx.Connect(context.Background(), connString)
+	db, err := sql.Open("postgres",
+		connString)
 	if err != nil {
 		log.Printf("handlers|PostgresConnection|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	defer db.Close(context.Background())
+	//defer db.Close(context.Background())
+	defer db.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
 	defer cancel()
-	if err = db.Ping(ctx); err != nil {
+	//if err = db.Ping(ctx); err != nil {
+	if err = db.PingContext(ctx); err != nil {
 		log.Println(err.Error())
 		rw.WriteHeader(http.StatusInternalServerError)
 	}

@@ -20,7 +20,8 @@ var (
 	localAddr = "localhost:8080"
 	filename  = "link.log"
 	baseURL   = "http://localhost:8080/"
-	database  = "postgres://habruser:habr@localhost:5432/habrdb"
+	//database  = "postgres://habruser:habr@localhost:5432/habrdb"
+	database = "user=habruser password=habr host=localhost port=5432 database=habrdb sslmode=disable"
 )
 
 func GetConfig() (Config, error) {
