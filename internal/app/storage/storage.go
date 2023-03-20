@@ -50,6 +50,8 @@ func NewStorage(cfg config.Config) *StorageLinks {
 				links.cookiesMap[link.ShortURL] = links.cookiesMap[link.User]
 			}
 			return links
+		} else {
+			log.Printf("Не учитываем таблицу бд")
 		}
 	}
 	// открываем файл и читаем сохраненные ссылки
