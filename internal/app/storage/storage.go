@@ -36,8 +36,8 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		cookiesMap: map[string]string{}}
 	links.config = cfg
 	if links.config.Database != "" {
-		db, err := InitTable(links.config.Database)
-		if err == nil {
+		db, errDB := InitTable(links.config.Database)
+		if errDB == nil {
 			links.db = db
 			linksDB, err := SelectLines(links.config.Database, 100)
 			if err != nil {
