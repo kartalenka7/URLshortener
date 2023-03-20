@@ -20,6 +20,7 @@ func InitTable(connString string) error {
 	}
 	defer db.Close()
 
+	log.Println("Создаем контекст")
 	// конструируем контекст с 5-секундным тайм-аутом
 	// после 5 секунд затянувшаяся операция с БД будет прервана
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
@@ -33,7 +34,8 @@ func InitTable(connString string) error {
 			`"cookie" TEXT`+
 			`);`)
 	if err != nil {
-		log.Printf("database|Init table|%s\n", err.Error())
+		log.Printf("database|Ошибка при создании таблицы|%s\n", err.Error())
+		return err
 	}
 	return nil
 }

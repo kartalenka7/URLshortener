@@ -37,7 +37,7 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		if errDB == nil {
 			linksDB, err := SelectLines(links.config.Database, 100)
 			if err != nil {
-				log.Printf("database|Select lines|%s\n", err.Error())
+				log.Printf("database|Select|%s\n", err.Error())
 				return nil
 			}
 
