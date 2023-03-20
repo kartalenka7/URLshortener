@@ -54,7 +54,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		gToken, errToken = s.storage.AddLink(url, "")
 		if errToken != nil {
 			log.Printf("handlers|AddLink|%s\n", errToken.Error())
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
 			return
 		}
 	} else {
@@ -144,7 +144,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookie.Value)
 		if errToken != nil {
 			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
-			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
 			return
 		}
 	}
