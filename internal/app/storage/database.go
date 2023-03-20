@@ -9,14 +9,14 @@ import (
 	_ "github.com/lib/pq"
 )
 
-func InitTable(connString string) (*sql.DB, error) {
+func InitTable(connString string) error {
 	log.Println("Инициализация таблицы")
 	// открываем соединение с бд
 	db, err := sql.Open("postgres",
 		connString)
 	if err != nil {
 		log.Printf("database|Init table|%s\n", err.Error())
-		return db, err
+		return err
 	}
 	defer db.Close()
 
@@ -35,7 +35,7 @@ func InitTable(connString string) (*sql.DB, error) {
 	if err != nil {
 		log.Printf("database|Init table|%s\n", err.Error())
 	}
-	return db, nil
+	return nil
 }
 
 func InsertLine(connString string, shortURL string, longURL string, cookie string) error {

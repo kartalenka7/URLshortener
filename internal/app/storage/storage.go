@@ -8,8 +8,6 @@ import (
 
 	urlNet "net/url"
 
-	"database/sql"
-
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
@@ -20,7 +18,6 @@ type StorageLinks struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
 	config     config.Config
-	db         *sql.DB
 }
 
 // Структура для записи в файл
@@ -36,9 +33,8 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		cookiesMap: map[string]string{}}
 	links.config = cfg
 	if links.config.Database != "" {
-		db, errDB := InitTable(links.config.Database)
+		errDB := InitTable(links.config.Database)
 		if errDB == nil {
-			links.db = db
 			linksDB, err := SelectLines(links.config.Database, 100)
 			if err != nil {
 				log.Printf("database|Select lines|%s\n", err.Error())
