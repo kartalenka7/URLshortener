@@ -134,7 +134,7 @@ func TestGET(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := storage.NewStorage(cfg)
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := s.AddLink(tt.longURL)
+			gToken, err := s.AddLink(tt.longURL, "")
 			sToken := strings.Replace(gToken, cfg.BaseURL, "", 1)
 			assert.NoError(t, err)
 

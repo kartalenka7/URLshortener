@@ -43,7 +43,7 @@ func (s StorageLinks) GetStorageLen() int {
 	return len(s.linksMap)
 }
 
-func (s StorageLinks) AddLink(longURL string) (string, error) {
+func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	var err error
 	gToken := utils.RandStringBytes(10)
 	log.Println(gToken)
@@ -60,10 +60,11 @@ func (s StorageLinks) AddLink(longURL string) (string, error) {
 		return "", errors.New("link already exists")
 	}
 	s.linksMap[sToken] = longURL
+	s.cookiesMap[sToken] = user
 	return sToken, err
 }
 
-func (s StorageLinks) WriteInFile(user string) {
+func (s StorageLinks) WriteInFile() {
 	if s.config.File == "" {
 		return
 	}
@@ -79,7 +80,7 @@ func (s StorageLinks) WriteInFile(user string) {
 		var links = LinksData{
 			ShortURL: short,
 			LongURL:  long,
-			User:     user,
+			User:     s.cookiesMap[short],
 		}
 		if err := producer.WriteLinks(&links); err != nil {
 			log.Println(err.Error())

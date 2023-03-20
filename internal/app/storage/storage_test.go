@@ -38,7 +38,7 @@ func TestStorage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			s := NewStorage(config.Config{File: tt.file})
 			// Добавляем ссылку в хранилище
-			gToken, err := s.AddLink(tt.longURL)
+			gToken, err := s.AddLink(tt.longURL, "")
 			if err != nil {
 				t.Errorf("StorageLinks.GetLongURL() error = %v", err)
 				return

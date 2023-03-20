@@ -32,6 +32,8 @@ type Repository interface {
 // Структура для парсинга переменных окружения
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
+	var gToken string
+	var errToken error
 	log.Println("shorten URL")
 
 	// Читаем строку URL из body
@@ -46,22 +48,27 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("long url %s\n", url)
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(url)
-	if err != nil {
-		log.Printf("handlers|AddLink|%s\n", err.Error())
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
 	cookie, err := req.Cookie("User")
 	if err != nil {
 		log.Printf("handlers|shortenURL|%s\n", err.Error())
-		s.storage.WriteInFile("")
+		gToken, errToken = s.storage.AddLink(url, "")
+		if errToken != nil {
+			log.Printf("handlers|AddLink|%s\n", errToken.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	} else {
 		log.Println(cookie)
-		// записываем ссылки из мапы в файл
-		s.storage.WriteInFile(cookie.Value)
+		gToken, errToken = s.storage.AddLink(url, cookie.Value)
+		if errToken != nil {
+			log.Printf("handlers|AddLink|%s\n", errToken.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
+
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
 
 	fmt.Printf("Возвращены куки %s\n", cookie)
 	//req.AddCookie(cookie)
@@ -107,6 +114,8 @@ type Response struct {
 }
 
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
+	var gToken string
+	var errToken error
 
 	log.Println("POST JSON")
 	// чтение JSON объекта из body
@@ -122,20 +131,26 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 	log.Printf("request json %s\n", requestJSON)
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, err := s.storage.AddLink(requestJSON.LongURL)
-	if err != nil {
-		log.Printf("handlers|shortenJSON|%s\n", err.Error())
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
 	cookie, err := req.Cookie("User")
 	if err != nil {
 		log.Printf("handlers|shortenJSON|%s\n", err.Error())
-		s.storage.WriteInFile("")
+		gToken, errToken = s.storage.AddLink(requestJSON.LongURL, "")
+		if errToken != nil {
+			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	} else {
-		// записываем ссылки из мапы в файл
-		s.storage.WriteInFile(cookie.Value)
+		gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookie.Value)
+		if errToken != nil {
+			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+			http.Error(rw, err.Error(), http.StatusInternalServerError)
+			return
+		}
 	}
+
+	// записываем ссылки из мапы в файл
+	s.storage.WriteInFile()
 
 	// формируем json объект ответа
 	response := Response{
