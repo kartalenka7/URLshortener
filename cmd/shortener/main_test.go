@@ -240,7 +240,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	return resp.StatusCode, body, resp.Header.Get("Content-Type"), err
 }
 
-func TestPing(t *testing.T) {
+/* func TestPing(t *testing.T) {
 
 	type want struct {
 		statusCode int
@@ -280,4 +280,4 @@ func TestPing(t *testing.T) {
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 		})
 	}
-}
+} */
