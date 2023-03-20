@@ -49,37 +49,15 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 	}
 	defer db.Close()
 
-	query := "INSERT INTO urls(short_url, long_url, cookie) VALUES ($1, $2, $3)"
-	ctx, cancelfunc := context.WithTimeout(context.Background(), 5*time.Second)
-	defer cancelfunc()
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
 
-	stmt, err := db.PrepareContext(ctx, query)
+	_, err = db.ExecContext(ctx, "INSERT INTO urls(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
+
 	if err != nil {
-		log.Printf("Error %s when preparing SQL statement", err)
+		log.Printf("database|Insert line|%s\n", err.Error())
 		return err
 	}
-	defer stmt.Close()
-	res, err := stmt.ExecContext(ctx, shortURL, longURL, cookie)
-	if err != nil {
-		log.Printf("Error %s when inserting row into products table", err)
-		return err
-	}
-	rows, err := res.RowsAffected()
-	if err != nil {
-		log.Printf("Error %s when finding rows affected", err)
-		return err
-	}
-	log.Printf("%d line with url created ", rows)
-
-	/* 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	   	defer cancel()
-
-	   	_, err = db.ExecContext(ctx, "INSERT INTO urls(short_url, long_url, cookie) VALUES (?, ?, ?)", shortURL, longURL, cookie)
-
-	   	if err != nil {
-	   		log.Printf("database|Insert line|%s\n", err.Error())
-	   		return err
-	   	} */
 	return nil
 }
 
