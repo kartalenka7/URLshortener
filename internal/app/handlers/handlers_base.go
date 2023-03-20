@@ -30,7 +30,7 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 		r.Post("/api/shorten", serv.shortenJSON)
 		// все URL пользователя, которые он сокращал
 		r.Get("/api/user/urls", serv.getUserURLs)
-		//r.Get("/ping", serv.PostgresConnection)
+		r.Get("/ping", serv.PostgresConnection)
 		// получение полного URL по скоращенному
 		r.Get("/{id}", serv.getFullURL)
 		// сокращение URL
