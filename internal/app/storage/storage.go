@@ -138,3 +138,7 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 	}
 	return longURL, err
 }
+
+func (s StorageLinks) GetConnSrtring() string {
+	return s.config.Database
+}

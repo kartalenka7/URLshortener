@@ -10,15 +10,17 @@ import (
 )
 
 type Config struct {
-	BaseURL string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
-	Server  string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	File    string `env:"FILE_STORAGE_PATH"`
+	BaseURL  string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
+	Server   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
+	File     string `env:"FILE_STORAGE_PATH"`
+	Database string `env:"DATABASE_DSN"`
 }
 
 var (
 	localAddr = "localhost:8080"
 	filename  = "link.log"
 	baseURL   = "http://localhost:8080/"
+	database  = "postgres://habruser:habr@localhost:5432/habrdb"
 )
 
 func GetConfig() (Config, error) {
@@ -39,6 +41,8 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfgFlag.File, "f", filename, "File name")
 	// флаг -b отвечающий за базовый адрес результирующего сокращённого URL
 	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
+
+	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
 	flag.Parse()
 
 	log.Printf("Флаги командной строки: %s\n", cfgFlag)
@@ -56,5 +60,8 @@ func GetConfig() (Config, error) {
 		cfg.BaseURL = cfgFlag.BaseURL
 	}
 
+	if cfg.Database == "" || cfg.Database == database {
+		cfg.Database = cfgFlag.Database
+	}
 	return cfg, err
 }

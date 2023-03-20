@@ -49,8 +49,7 @@ func generateUserToken(len int) (string, error) {
 func WriteCookies() (http.Cookie, error) {
 	var err error
 	cookie := http.Cookie{
-		Name:   "User",
-		Secure: true,
+		Name: "User",
 	}
 	cookie.Value, err = generateUserToken(16)
 	if err != nil {
@@ -83,7 +82,7 @@ func ReadCookies(cookie http.Cookie) error {
 	expectedSignature := mac.Sum(nil)
 
 	if !hmac.Equal([]byte(signature), expectedSignature) {
-		log.Printf("handlers_base|userAuth|%s\n", errors.New("link already exists"))
+		log.Printf("handlers_base|userAuth|%s\n", errors.New("подпись не совпадает"))
 		return err
 	}
 	return nil

@@ -13,21 +13,28 @@ import (
 	"strings"
 	"testing"
 
+	"net/http/cookiejar"
+
 	handlers "example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/storage"
 	"example.com/shortener/internal/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/publicsuffix"
 )
 
 var cfg config.Config
+var jar *cookiejar.Jar
 
 func init() {
 	cfg = config.Config{
-		BaseURL: "http://localhost:8080/",
-		Server:  "localhost:8080",
-		File:    "link.log",
+		BaseURL:  "http://localhost:8080/",
+		Server:   "localhost:8080",
+		File:     "link.log",
+		Database: "postgres://habruser:habr@localhost:5432/habrdb",
 	}
+
+	jar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 }
 
 func TestPOST(t *testing.T) {
@@ -78,8 +85,14 @@ func TestPOST(t *testing.T) {
 			req.Header.Add("Accept-Encoding", "gzip")
 
 			client := new(http.Client)
+			client.Jar = jar
 			resp, err := client.Do(req)
 			require.NoError(t, err)
+
+			fmt.Println("After 1st request:")
+			for _, cookie := range jar.Cookies(req.URL) {
+				fmt.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
+			}
 
 			respBody, err = io.ReadAll(resp.Body)
 			defer resp.Body.Close()
@@ -139,11 +152,17 @@ func TestGET(t *testing.T) {
 			}
 			req.Header.Add("Accept-Encoding", "no")
 			client := new(http.Client)
+			client.Jar = jar
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 				return errors.New("Redirect")
 			}
 			resp, err := client.Do(req)
 			resp.Body.Close()
+
+			fmt.Println("After 2st request:")
+			for _, cookie := range jar.Cookies(req.URL) {
+				fmt.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
+			}
 			//statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			require.Error(t, err)
@@ -219,4 +238,45 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	defer resp.Body.Close()
 	require.NoError(t, err)
 	return resp.StatusCode, body, resp.Header.Get("Content-Type"), err
+}
+
+func TestPing(t *testing.T) {
+
+	type want struct {
+		statusCode int
+		err        string
+	}
+	testsGet := []struct {
+		name    string
+		longURL string
+		want    want
+		method  string
+	}{
+		{
+			name: "Ping database",
+			want: want{
+				statusCode: http.StatusOK,
+				err:        "Get \"https://www.github.com\": Redirect",
+			},
+			method: http.MethodGet,
+		},
+	}
+
+	for _, tt := range testsGet {
+		t.Run(tt.name, func(t *testing.T) {
+			s := storage.NewStorage(cfg)
+
+			r := handlers.NewRouter(s)
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			req, err := http.NewRequest(tt.method, ts.URL+"/ping", nil)
+			require.NoError(t, err)
+			req.Header.Add("Accept-Encoding", "no")
+			client := new(http.Client)
+			resp, err := client.Do(req)
+			resp.Body.Close()
+			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
+		})
+	}
 }

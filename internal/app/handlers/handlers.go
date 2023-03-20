@@ -9,7 +9,11 @@ import (
 	"net/http"
 	"strings"
 
+	"context"
+	"time"
+
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx/v5"
 )
 
 var (
@@ -54,15 +58,17 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("handlers|shortenURL|%s\n", err.Error())
 		s.storage.WriteInFile("")
 	} else {
+		log.Println(cookie)
 		// записываем ссылки из мапы в файл
 		s.storage.WriteInFile(cookie.Value)
 	}
 
+	fmt.Printf("Возвращены куки %s\n", cookie)
+	//req.AddCookie(cookie)
+	http.SetCookie(rw, cookie)
+
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
-
-	fmt.Printf("Возвращены куки %s\n", cookie)
-	req.AddCookie(cookie)
 
 	// пишем в тело ответа сокращенный URL
 	log.Printf("Short URL %s", gToken)
@@ -137,12 +143,14 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}
 	log.Printf("short url %s\n", response.ShortURL)
 
+	fmt.Printf("Возвращены куки %s\n", cookie)
+	//req.AddCookie(cookie)
+	http.SetCookie(rw, cookie)
+
 	rw.Header().Set("Content-Type", contentTypeJSON)
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 
-	fmt.Printf("Возвращены куки %s\n", cookie)
-	http.SetCookie(rw, cookie)
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL
 	fmt.Fprint(rw, response.ToJSON())
@@ -193,6 +201,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
+	log.Printf("Возвращаемый заголовок %s\n", rw.Header())
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 
@@ -202,4 +211,24 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(urls)
 	fmt.Fprint(rw, buf)
+}
+
+func (s *Server) PostgresConnection(rw http.ResponseWriter, req *http.Request) {
+	log.Println("Ping")
+	connString := s.storage.GetConnSrtring()
+	db, err := pgx.Connect(context.Background(), connString)
+	if err != nil {
+		log.Printf("handlers|PostgresConnection|%s\n", err.Error())
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	defer db.Close(context.Background())
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Second)
+	defer cancel()
+	if err = db.Ping(ctx); err != nil {
+		log.Println(err.Error())
+		rw.WriteHeader(http.StatusInternalServerError)
+	}
+	rw.WriteHeader(http.StatusOK)
 }
