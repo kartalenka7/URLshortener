@@ -34,24 +34,24 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		linksMap:   make(map[string]string),
 		cookiesMap: map[string]string{}}
 	links.config = cfg
-	/* if links.config.Database != "" {
-		errDB := InitTable(links.config.Database)
-		if errDB == nil {
-			linksDB, err := SelectLines(links.config.Database, 100)
-			if err != nil {
-				log.Printf("database|Select|%s\n", err.Error())
-				return nil
-			}
+	if links.config.Database != "" {
+		_ = InitTable(links.config.Database)
+		/* 		if errDB == nil {
+		   			linksDB, err := SelectLines(links.config.Database, 100)
+		   			if err != nil {
+		   				log.Printf("database|Select|%s\n", err.Error())
+		   				return nil
+		   			}
 
-			for _, link := range linksDB {
-				links.linksMap[link.ShortURL] = links.linksMap[link.LongURL]
-				links.cookiesMap[link.ShortURL] = links.cookiesMap[link.User]
-			}
-			return links
-		} else {
-			log.Printf("Не учитываем таблицу бд")
-		}
-	} */
+		   			for _, link := range linksDB {
+		   				links.linksMap[link.ShortURL] = links.linksMap[link.LongURL]
+		   				links.cookiesMap[link.ShortURL] = links.cookiesMap[link.User]
+		   			}
+		   			return links
+		   		} else {
+		   			log.Printf("Не учитываем таблицу бд")
+		   		} */
+	}
 	// открываем файл и читаем сохраненные ссылки
 	if links.config.File != "" {
 		ReadFromFile(links)
