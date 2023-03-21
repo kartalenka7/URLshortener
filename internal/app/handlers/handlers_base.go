@@ -26,10 +26,12 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 		r.Use(userAuth)
 		// обработка сжатия gzip
 		r.Use(gzipHandle)
+		r.Post("/api/shorten/batch", serv.shortenBatch)
 		// сокращение URL в JSON формате
 		r.Post("/api/shorten", serv.shortenJSON)
 		// все URL пользователя, которые он сокращал
 		r.Get("/api/user/urls", serv.getUserURLs)
+		// проверка соединения с бд
 		r.Get("/ping", serv.PostgresConnection)
 		// получение полного URL по скоращенному
 		r.Get("/{id}", serv.getFullURL)

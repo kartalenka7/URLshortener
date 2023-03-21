@@ -13,9 +13,9 @@ import (
 	"database/sql"
 	"time"
 
-	//_ "github.com/jackc/pgx/v4"
 	_ "github.com/lib/pq"
 
+	storage "example.com/shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
 )
 
@@ -56,6 +56,10 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		log.Printf("handlers|shortenURL|%s\n", err.Error())
 		gToken, errToken = s.storage.AddLink(url, "")
 		if errToken != nil {
+			/* if errToken.Is() {
+
+			} */
+
 			log.Printf("handlers|AddLink|%s\n", errToken.Error())
 			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
 			return
@@ -83,6 +87,50 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// пишем в тело ответа сокращенный URL
 	log.Printf("Short URL %s", gToken)
 	fmt.Fprint(rw, gToken)
+}
+
+func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
+
+	log.Println("Shorten Batch")
+	// чтение JSON объектов из body
+	decoder := json.NewDecoder(req.Body)
+	defer req.Body.Close()
+
+	//десериализация в слайс
+	buffer := make([]storage.BatchReq, 0, 100)
+	response := make([]storage.BatchResp, 0, 100)
+
+	if err := decoder.Decode(&buffer); err != nil {
+		log.Printf("handlers|shortenBatch|%s\n", err.Error())
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	cookie, _ := req.Cookie("User")
+
+	response, err := s.storage.ShortenBatchTr(buffer, cookie.Value)
+	if err != nil {
+		log.Printf("handlers|shortenBatch|%s\n", err.Error())
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	fmt.Printf("Возвращены куки %s\n", cookie)
+	//req.AddCookie(cookie)
+	http.SetCookie(rw, cookie)
+
+	rw.Header().Set("Content-Type", contentTypeJSON)
+	// возвращаем ответ с кодом 201
+	rw.WriteHeader(http.StatusCreated)
+
+	// пишем в тело ответа закодированный в JSON объект
+	// который содержит сокращенный URL
+	// записываем результат JSON-сериализации в хранилище байт
+	buf := bytes.NewBuffer([]byte{})
+	encoder := json.NewEncoder(buf)
+	encoder.SetEscapeHTML(false)
+	encoder.Encode(response)
+	fmt.Fprint(rw, buf)
 }
 
 func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {

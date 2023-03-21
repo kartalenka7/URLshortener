@@ -4,8 +4,11 @@ import (
 	"context"
 	"database/sql"
 	"log"
+	urlNet "net/url"
 	"time"
 
+	"example.com/shortener/internal/config"
+	"example.com/shortener/internal/config/utils"
 	_ "github.com/lib/pq"
 )
 
@@ -59,6 +62,59 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 		return err
 	}
 	return nil
+}
+
+func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]BatchResp, error) {
+	db, err := sql.Open("postgres", config.Database)
+	if err != nil {
+		log.Printf("database|Prepare transaction|%s\n", err.Error())
+		return nil, err
+	}
+	// шаг 1 — объявляем транзакцию
+	tx, err := db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	// шаг 1.1 — если возникает ошибка, откатываем изменения
+	defer tx.Rollback()
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	// не забываем освободить ресурс
+	defer cancel()
+
+	// шаг 2 — готовим инструкцию
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls(short_url, long_url, cookie) VALUES ($1, $2, $3)")
+	if err != nil {
+		return nil, err
+	}
+	// шаг 2.1 — не забываем закрыть инструкцию, когда она больше не нужна
+	defer stmt.Close()
+
+	response := make([]BatchResp, 0, 100)
+	for _, batchValue := range batchReq {
+
+		gToken := utils.RandStringBytes(10)
+		log.Println(gToken)
+		sToken := config.BaseURL + gToken
+		_, urlParseErr := urlNet.Parse(sToken)
+		if urlParseErr != nil {
+			sToken = config.BaseURL + "/" + gToken
+		}
+
+		if _, err = stmt.ExecContext(ctx, sToken, batchValue.URL, cookie); err != nil {
+			return nil, err
+		}
+
+		// формируем структуру для ответа
+		response = append(response, BatchResp{
+			CorrId:   batchValue.CorrId,
+			ShortURL: gToken,
+		})
+	}
+	log.Printf("Структура ответа %s\n", response)
+	// шаг 4 — сохраняем изменения
+	tx.Commit()
+	return response, nil
 }
 
 func SelectLines(connString string, limit int) ([]LinksData, error) {

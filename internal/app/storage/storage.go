@@ -8,6 +8,8 @@ import (
 
 	urlNet "net/url"
 
+	//"database/sql"
+
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
@@ -75,12 +77,11 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	if s.config.Database != "" {
 		InsertLine(s.config.Database, sToken, longURL, user)
 	}
-
-	// in-memory
 	_, ok := s.linksMap[sToken]
 	if ok {
 		return "", errors.New("link already exists")
 	}
+
 	s.linksMap[sToken] = longURL
 	s.cookiesMap[sToken] = user
 	return sToken, err
@@ -164,4 +165,18 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 
 func (s StorageLinks) GetConnSrtring() string {
 	return s.config.Database
+}
+
+type BatchReq struct {
+	CorrId string `json:"correlation_id"`
+	URL    string `json:"original_url"`
+}
+
+type BatchResp struct {
+	CorrId   string `json:"correlation_id"`
+	ShortURL string `json:"short_url"`
+}
+
+func (s StorageLinks) ShortenBatchTr(batchReq []BatchReq, cookie string) ([]BatchResp, error) {
+	return ShortenBatch(batchReq, s.config, cookie)
 }
