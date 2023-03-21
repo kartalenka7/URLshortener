@@ -34,7 +34,7 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		linksMap:   make(map[string]string),
 		cookiesMap: map[string]string{}}
 	links.config = cfg
-	if links.config.Database != "" {
+	/* if links.config.Database != "" {
 		errDB := InitTable(links.config.Database)
 		if errDB == nil {
 			linksDB, err := SelectLines(links.config.Database, 100)
@@ -51,7 +51,7 @@ func NewStorage(cfg config.Config) *StorageLinks {
 		} else {
 			log.Printf("Не учитываем таблицу бд")
 		}
-	}
+	} */
 	// открываем файл и читаем сохраненные ссылки
 	if links.config.File != "" {
 		ReadFromFile(links)
