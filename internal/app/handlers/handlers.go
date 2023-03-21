@@ -98,7 +98,6 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 
 	//десериализация в слайс
 	buffer := make([]storage.BatchReq, 0, 100)
-	response := make([]storage.BatchResp, 0, 100)
 
 	if err := decoder.Decode(&buffer); err != nil {
 		log.Printf("handlers|shortenBatch|%s\n", err.Error())
