@@ -114,9 +114,9 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	fmt.Printf("Возвращены куки %s\n", cookie)
-	//req.AddCookie(cookie)
-	http.SetCookie(rw, cookie)
+	/* 	fmt.Printf("Возвращены куки %s\n", cookie)
+	   	//req.AddCookie(cookie)
+	   	http.SetCookie(rw, cookie) */
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 	// возвращаем ответ с кодом 201
