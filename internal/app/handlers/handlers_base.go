@@ -12,11 +12,11 @@ type Server struct {
 }
 
 func NewRouter(s *storage.StorageLinks) chi.Router {
+	log.Println("выбираем роутер")
 	serv := &Server{
 		storage: *s,
 	}
 
-	log.Println("выбираем роутер")
 	// определяем роутер chi
 	r := chi.NewRouter()
 
