@@ -129,6 +129,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(response)
+	log.Printf("Ответ, закодированный в JSON, %s\n", response)
 	fmt.Fprint(rw, buf)
 }
 
