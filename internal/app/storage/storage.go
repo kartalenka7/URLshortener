@@ -158,7 +158,11 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 
 	longURL, ok := s.linksMap[longToken]
 	if !ok {
-		return "", errors.New("link is not found")
+		longURL, err = SelectLink(s.config.Database, longToken)
+		if err != nil {
+			log.Printf("storage|getLongURL|%s\n", err.Error())
+			return "", errors.New("link is not found")
+		}
 	}
 	return longURL, err
 }

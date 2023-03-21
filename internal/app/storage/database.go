@@ -101,6 +101,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 			sToken = config.BaseURL + "/" + gToken
 		}
 
+		log.Printf("Записываем в бд %s, %s \n", sToken, batchValue.URL)
 		if _, err = stmt.ExecContext(ctx, sToken, batchValue.URL, cookie); err != nil {
 			return nil, err
 		}
@@ -113,7 +114,10 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 	}
 	log.Printf("Структура ответа %s\n", response)
 	// шаг 4 — сохраняем изменения
-	tx.Commit()
+	err = tx.Commit()
+	if err != nil {
+		return nil, err
+	}
 	return response, nil
 }
 
@@ -158,4 +162,23 @@ func SelectLines(connString string, limit int) ([]LinksData, error) {
 	}
 
 	return linksAll, nil
+}
+
+func SelectLink(connString string, shortURL string) (string, error) {
+	log.Println("Ищем длинный URL в бд")
+	db, err := sql.Open("postgres",
+		connString)
+	if err != nil {
+		log.Printf("database|Select Link|%s\n", err.Error())
+		return "", err
+	}
+	defer db.Close()
+
+	var longURL string
+	err = db.QueryRow("SELECT long_url FROM urls WHERE short_url = $1", shortURL).Scan(&longURL)
+	if err != nil {
+		return "", err
+	}
+
+	return longURL, nil
 }
