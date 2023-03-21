@@ -70,6 +70,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 		log.Printf("database|Prepare transaction|%s\n", err.Error())
 		return nil, err
 	}
+	defer db.Close()
 	// шаг 1 — объявляем транзакцию
 	tx, err := db.Begin()
 	if err != nil {
