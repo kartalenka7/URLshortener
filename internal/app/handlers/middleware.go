@@ -49,6 +49,7 @@ func gzipHandle(next http.Handler) http.Handler {
 }
 
 func userAuth(next http.Handler) http.Handler {
+	log.Println("middleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
 		// получаем куки
