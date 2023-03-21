@@ -168,12 +168,12 @@ func (s StorageLinks) GetConnSrtring() string {
 }
 
 type BatchReq struct {
-	CorrId string `json:"correlation_id"`
+	CorrID string `json:"correlation_id"`
 	URL    string `json:"original_url"`
 }
 
 type BatchResp struct {
-	CorrId   string `json:"correlation_id"`
+	CorrID   string `json:"correlation_id"`
 	ShortURL string `json:"short_url"`
 }
 
