@@ -110,7 +110,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 		// формируем структуру для ответа
 		response = append(response, BatchResp{
 			CorrID:   batchValue.CorrID,
-			ShortURL: gToken,
+			ShortURL: sToken,
 		})
 	}
 	log.Printf("Структура ответа %s\n", response)

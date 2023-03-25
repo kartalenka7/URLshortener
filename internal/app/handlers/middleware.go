@@ -18,6 +18,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
 			log.Println("no gzip")
+			log.Printf("Заголовок %s\n", r.Header)
 			next.ServeHTTP(w, r)
 			return
 		}

@@ -5,11 +5,13 @@ import (
 	"compress/gzip"
 	"encoding/json"
 	"errors"
+
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
+
 	"strings"
 	"testing"
 
@@ -18,6 +20,7 @@ import (
 	handlers "example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/storage"
 	"example.com/shortener/internal/config"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/publicsuffix"
@@ -75,7 +78,7 @@ func TestPOST(t *testing.T) {
 			_ = zw.Close()
 
 			/* 	data := url.Values{}
-			data.Set("url", "https://www.youtube.com") */
+			data.Set("url", "https://www.youtube.com")*/
 
 			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
 			require.NoError(t, err)
@@ -240,6 +243,94 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	require.NoError(t, err)
 	return resp.StatusCode, body, resp.Header.Get("Content-Type"), err
 }
+
+/* func TestShortenBatch(t *testing.T) {
+
+	type want struct {
+		statusCode int
+		err        string
+	}
+	testsGet := []struct {
+		name    string
+		longURL string
+		want    want
+		method  string
+	}{
+		{
+			name:    "GET positive test",
+			longURL: "https://www.github.com",
+			want: want{
+				statusCode: http.StatusTemporaryRedirect,
+				err:        "Get \"https://www.github.com\": Redirect",
+			},
+			method: http.MethodGet,
+		},
+	}
+
+	for _, tt := range testsGet {
+		t.Run(tt.name, func(t *testing.T) {
+			s := storage.NewStorage(cfg)
+			r := handlers.NewRouter(s)
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			// запрос shortenBatch
+			request := "/api/shorten/batch"
+			bodyStr := storage.BatchReq{
+				CorrID: "1",
+				URL:    tt.longURL,
+			}
+			reqSlice := make([]storage.BatchReq, 0, 2)
+			reqSlice = append(reqSlice, bodyStr)
+
+			buf := bytes.NewBuffer([]byte{})
+			encoder := json.NewEncoder(buf)
+			encoder.SetEscapeHTML(false)
+			encoder.Encode(reqSlice)
+
+			req, err := http.NewRequest(http.MethodPost, ts.URL+request, buf)
+			require.NoError(t, err)
+
+			req.Header.Add("Accept-Encoding", "no")
+			client := new(http.Client)
+			resp, err := client.Do(req)
+
+			decoder := json.NewDecoder(resp.Body)
+
+			//десериализация в слайс
+			buffer := make([]storage.BatchResp, 0, 100)
+			err = decoder.Decode(&buffer)
+			if err != nil {
+				log.Println(err.Error())
+			}
+
+			defer req.Body.Close()
+			defer resp.Body.Close()
+
+			for _, batchValue := range buffer {
+				log.Println(batchValue.ShortURL)
+				request = "/" + batchValue.ShortURL
+				break
+			}
+
+			req, err = http.NewRequest(tt.method, ts.URL+request, nil)
+			require.NoError(t, err)
+
+			req.Header.Add("Accept-Encoding", "no")
+			client = new(http.Client)
+			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+				return errors.New("Redirect")
+			}
+			resp, err = client.Do(req)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			log.Println(resp.StatusCode)
+
+		})
+	}
+
+} */
 
 /* func TestPing(t *testing.T) {
 
