@@ -13,7 +13,9 @@ import (
 	"database/sql"
 	"time"
 
-	_ "github.com/lib/pq"
+	"errors"
+
+	"github.com/lib/pq"
 
 	storage "example.com/shortener/internal/app/storage"
 	"github.com/go-chi/chi/v5"
@@ -25,6 +27,8 @@ var (
 	contentTypeJSON = "application/json"
 	encodGzip       = "gzip"
 )
+
+const uniqViolation = pq.ErrorCode("23505")
 
 type Repository interface {
 	AddLink(gToken string, longURL string) error
@@ -50,36 +54,37 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	url := strings.Replace(string(b), "url=", "", 1)
 	log.Printf("long url %s\n", url)
 
-	// добавляем длинный url в хранилище, генерируем токен
+	var cookieValue string
 	cookie, err := req.Cookie("User")
 	if err != nil {
-		log.Printf("handlers|shortenURL|%s\n", err.Error())
-		gToken, errToken = s.storage.AddLink(url, "")
-		if errToken != nil {
-			/* if errToken.Is() {
+		cookieValue = cookie.Value
+	}
 
-			} */
+	log.Println(cookie)
+	log.Printf("Возвращены куки %s\n", cookie)
+	http.SetCookie(rw, cookie)
 
-			log.Printf("handlers|AddLink|%s\n", errToken.Error())
-			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-			return
+	// добавляем длинный url в хранилище, генерируем токен
+	gToken, errToken = s.storage.AddLink(url, cookieValue)
+	if errToken != nil {
+		var pqErr *pq.Error
+		if errors.As(errToken, &pqErr) {
+			if pqErr.Code == uniqViolation {
+				// попытка сократить уже имеющийся в базе URL
+				// возвращаем ответ с кодом 409
+				rw.WriteHeader(http.StatusConflict)
+				// пишем в тело ответа сокращенный URL
+				log.Printf("Короткий URL из бд %s", gToken)
+				fmt.Fprint(rw, gToken)
+				return
+			}
 		}
-	} else {
-		log.Println(cookie)
-		gToken, errToken = s.storage.AddLink(url, cookie.Value)
-		if errToken != nil {
-			log.Printf("handlers|AddLink|%s\n", errToken.Error())
-			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-			return
-		}
+		http.Error(rw, errToken.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// записываем ссылки из мапы в файл
 	s.storage.WriteInFile()
-
-	fmt.Printf("Возвращены куки %s\n", cookie)
-	//req.AddCookie(cookie)
-	http.SetCookie(rw, cookie)
 
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
@@ -105,22 +110,39 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	cookie, _ := req.Cookie("User")
+	var cookieValue string
+	cookie, err := req.Cookie("User")
+	if err != nil {
+		cookieValue = cookie.Value
+	}
 
-	response, err := s.storage.ShortenBatchTr(buffer, cookie.Value)
+	rw.Header().Set("Content-Type", contentTypeJSON)
+
+	response, err := s.storage.ShortenBatchTr(buffer, cookieValue)
 	if err != nil {
 		log.Printf("handlers|shortenBatch|%s\n", err.Error())
-		http.Error(rw, err.Error(), http.StatusBadRequest)
-		return
+		var pqErr *pq.Error
+		if errors.As(err, &pqErr) {
+			if pqErr.Code == uniqViolation {
+				// попытка сократить уже имеющийся в базе URL
+				// возвращаем ответ с кодом 409
+				rw.WriteHeader(http.StatusConflict)
+			} else {
+				http.Error(rw, err.Error(), http.StatusBadRequest)
+				return
+			}
+		} else {
+			http.Error(rw, err.Error(), http.StatusBadRequest)
+			return
+		}
+	} else {
+		// возвращаем ответ с кодом 201
+		rw.WriteHeader(http.StatusCreated)
 	}
 
 	/* 	fmt.Printf("Возвращены куки %s\n", cookie)
 	   	//req.AddCookie(cookie)
 	   	http.SetCookie(rw, cookie) */
-
-	rw.Header().Set("Content-Type", contentTypeJSON)
-	// возвращаем ответ с кодом 201
-	rw.WriteHeader(http.StatusCreated)
 
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL

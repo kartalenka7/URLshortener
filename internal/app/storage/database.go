@@ -3,14 +3,17 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log"
 	urlNet "net/url"
 	"time"
 
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
-	_ "github.com/lib/pq"
+	"github.com/lib/pq"
 )
+
+const uniqViolation = pq.ErrorCode("23505")
 
 func InitTable(connString string) error {
 	log.Println("Инициализация таблицы")
@@ -31,37 +34,65 @@ func InitTable(connString string) error {
 	defer cancel()
 
 	_, err = db.ExecContext(ctx,
-		"CREATE TABLE IF NOT EXISTS urls("+
+		"CREATE TABLE IF NOT EXISTS urlsBase("+
 			`"short_url" TEXT,`+
-			`"long_url" TEXT,`+
+			`"long_url" TEXT ,`+
 			`"cookie" TEXT`+
 			`);`)
 	if err != nil {
 		log.Printf("database|Ошибка при создании таблицы|%s\n", err.Error())
 		return err
 	}
+	_, err = db.ExecContext(ctx,
+		`ALTER TABLE urlsBase ADD CONSTRAINT long_url UNIQUE (long_url);`)
+	if err != nil {
+		log.Printf("database|Ошибка при добавлении индекса|%s\n", err.Error())
+		return err
+	}
 	return nil
 }
 
-func InsertLine(connString string, shortURL string, longURL string, cookie string) error {
+func InsertLine(connString string, shortURL string, longURL string, cookie string) (error, string) {
 	db, err := sql.Open("postgres",
 		connString)
 	if err != nil {
 		log.Printf("database|Insert Lines|%s\n", err.Error())
-		return err
+		return err, ""
 	}
 	defer db.Close()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	_, err = db.ExecContext(ctx, "INSERT INTO urls(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
-
+	res, err := db.ExecContext(ctx, "INSERT INTO urlsBase(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
 	if err != nil {
 		log.Printf("database|Insert line|%s\n", err.Error())
-		return err
+		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsBase WHERE long_url = $1", longURL)
+		if errSelect != nil {
+			return errSelect, ""
+		}
+		defer resSelect.Close()
+
+		var link LinksData
+		for resSelect.Next() {
+			errSelect := resSelect.Scan(&link.ShortURL)
+			if errSelect != nil {
+				return errSelect, ""
+			}
+			log.Printf("Найденный короткий URL %s\n", link.ShortURL)
+			return err, link.ShortURL
+		}
+
+		return err, ""
 	}
-	return nil
+
+	rows, err := res.RowsAffected()
+	if err == nil {
+		log.Printf("Вставлено строк %d\n", rows)
+	} else {
+		log.Println(err.Error())
+	}
+	return nil, ""
 }
 
 func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]BatchResp, error) {
@@ -71,27 +102,37 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 		return nil, err
 	}
 	defer db.Close()
-	// шаг 1 — объявляем транзакцию
+	// объявляем транзакцию
 	tx, err := db.Begin()
 	if err != nil {
 		return nil, err
 	}
-	// шаг 1.1 — если возникает ошибка, откатываем изменения
+	// если возникает ошибка, откатываем изменения
 	defer tx.Rollback()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	// не забываем освободить ресурс
 	defer cancel()
 
-	// шаг 2 — готовим инструкцию
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urls(short_url, long_url, cookie) VALUES ($1, $2, $3)")
+	// готовим инструкцию
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsBase(short_url, long_url, cookie) VALUES ($1, $2, $3)")
 	if err != nil {
 		return nil, err
 	}
-	// шаг 2.1 — не забываем закрыть инструкцию, когда она больше не нужна
+	// не забываем закрыть инструкцию, когда она больше не нужна
 	defer stmt.Close()
 
+	// готовим инструкцию для выборки уже существующих сокращенных URL
+	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsBase WHERE long_url = $1")
+	if errSelect != nil {
+		return nil, err
+	}
+	defer stmtSelect.Close()
+
 	response := make([]BatchResp, 0, 100)
+	var link LinksData
+	var errStmt error
+
 	for _, batchValue := range batchReq {
 
 		gToken := utils.RandStringBytes(10)
@@ -103,8 +144,29 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 		}
 
 		log.Printf("Записываем в бд %s, %s \n", sToken, batchValue.URL)
-		if _, err = stmt.ExecContext(ctx, sToken, batchValue.URL, cookie); err != nil {
-			return nil, err
+		if _, errStmt = stmt.ExecContext(ctx, sToken, batchValue.URL, cookie); errStmt != nil {
+			log.Printf("database|Insert line|%s\n", errStmt.Error())
+			var pqErr *pq.Error
+			if errors.As(errStmt, &pqErr) {
+				if pqErr.Code == uniqViolation {
+					// попытка сократить уже имеющийся в базе URL
+					rows, err := stmt.QueryContext(ctx, batchValue.URL)
+					if err != nil {
+						return nil, err
+					}
+					for rows.Next() {
+						errSelect := rows.Scan(&link.ShortURL)
+						if errSelect != nil {
+							return nil, errSelect
+						}
+						log.Printf("Найденный в бд короткий URL %s\n", link.ShortURL)
+						sToken = link.ShortURL
+						break
+					}
+				} else {
+					return nil, err
+				}
+			}
 		}
 
 		// формируем структуру для ответа
@@ -114,12 +176,12 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 		})
 	}
 	log.Printf("Структура ответа %s\n", response)
-	// шаг 4 — сохраняем изменения
+	// сохраняем изменения
 	err = tx.Commit()
 	if err != nil {
 		return nil, err
 	}
-	return response, nil
+	return response, errStmt
 }
 
 func SelectLines(connString string, limit int) ([]LinksData, error) {
@@ -137,7 +199,7 @@ func SelectLines(connString string, limit int) ([]LinksData, error) {
 	var link LinksData
 	linksAll := make([]LinksData, 0, limit)
 
-	rows, err := db.QueryContext(ctx, "SELECT short_url, long_url, cookie FROM urls")
+	rows, err := db.QueryContext(ctx, "SELECT short_url, long_url, cookie FROM urlsBase")
 	if err != nil {
 		return nil, err
 	}
@@ -176,7 +238,7 @@ func SelectLink(connString string, shortURL string) (string, error) {
 	defer db.Close()
 
 	var longURL string
-	err = db.QueryRow("SELECT long_url FROM urls WHERE short_url = $1", shortURL).Scan(&longURL)
+	err = db.QueryRow("SELECT long_url FROM urlsBase WHERE short_url = $1", shortURL).Scan(&longURL)
 	if err != nil {
 		return "", err
 	}

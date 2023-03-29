@@ -21,6 +21,8 @@ import (
 	"example.com/shortener/internal/app/storage"
 	"example.com/shortener/internal/config"
 
+	"net/url"
+
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"golang.org/x/net/publicsuffix"
@@ -74,11 +76,11 @@ func TestPOST(t *testing.T) {
 
 			var buf bytes.Buffer
 			zw := gzip.NewWriter(&buf)
-			_, _ = zw.Write([]byte("https://www.youtube.com"))
+			_, _ = zw.Write([]byte("https://www.pinterest1.com"))
 			_ = zw.Close()
 
-			/* 	data := url.Values{}
-			data.Set("url", "https://www.youtube.com")*/
+			data := url.Values{}
+			data.Set("url", "https://www.pinterest1.com")
 
 			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
 			require.NoError(t, err)
@@ -111,6 +113,74 @@ func TestPOST(t *testing.T) {
 	}
 }
 
+/* func TestPOSTConflict(t *testing.T) {
+
+	type want struct {
+		statusCode int
+	}
+	testsPost := []struct {
+		name    string
+		want    want
+		method  string
+		request string
+	}{
+		{
+			name: "POST add two identical URLs",
+			want: want{
+				statusCode: http.StatusCreated,
+			},
+			method:  http.MethodPost,
+			request: "/",
+		},
+	}
+
+	log.Println("Test POST on Conflict")
+	for _, tt := range testsPost {
+		t.Run(tt.name, func(t *testing.T) {
+			s := storage.NewStorage(cfg)
+			r := handlers.NewRouter(s)
+			ts := httptest.NewServer(r)
+			defer ts.Close()
+
+			var err error
+
+			data := url.Values{}
+			data.Set("url", "https://www.coin.com")
+
+			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(data.Encode()))
+			require.NoError(t, err)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			req.Header.Add("Accept-Encoding", "no")
+
+			client := new(http.Client)
+			resp, err := client.Do(req)
+			require.NoError(t, err)
+
+			fmt.Printf("Возвращенный статус %d\n", resp.StatusCode)
+
+			data = url.Values{}
+			data.Set("url", "https://www.witcher.com")
+			req, err = http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(data.Encode()))
+			require.NoError(t, err)
+			if err != nil {
+				log.Println(err.Error())
+			}
+			req.Header.Add("Accept-Encoding", "no")
+
+			client = new(http.Client)
+			resp, err = client.Do(req)
+
+			if err != nil {
+				log.Println(err.Error())
+			}
+			fmt.Printf("Возвращенный статус %d\n", resp.StatusCode)
+
+		})
+	}
+} */
+
 func TestGET(t *testing.T) {
 
 	type want struct {
@@ -125,10 +195,10 @@ func TestGET(t *testing.T) {
 	}{
 		{
 			name:    "GET positive test",
-			longURL: "https://www.github.com",
+			longURL: "https://www.pinterest2.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.github.com\": Redirect",
+				err:        "Get \"https://www.pinterest2.com\": Redirect",
 			},
 			method: http.MethodGet,
 		},
@@ -222,7 +292,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	bodyStr := struct {
 		LongURL string `json:"url"`
 	}{
-		LongURL: "https://www.youtube.com",
+		LongURL: "https://www.pinterest3.com",
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)

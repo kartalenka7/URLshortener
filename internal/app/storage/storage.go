@@ -73,9 +73,13 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 		sToken = s.config.BaseURL + "/" + gToken
 		log.Printf("Short URL %s", sToken)
 	}
-
+	log.Printf("Database conn %s\n", s.config.Database)
 	if s.config.Database != "" {
-		InsertLine(s.config.Database, sToken, longURL, user)
+		log.Printf("Записываем в бд %s %s\n", sToken, longURL)
+		err, short_url := InsertLine(s.config.Database, sToken, longURL, user)
+		if err != nil {
+			return short_url, err
+		}
 	}
 	_, ok := s.linksMap[sToken]
 	if ok {
