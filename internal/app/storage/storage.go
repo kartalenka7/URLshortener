@@ -78,7 +78,7 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 		log.Printf("Записываем в бд %s %s\n", sToken, longURL)
 		shortURL, err := InsertLine(s.config.Database, sToken, longURL, user)
 		if err != nil {
-			log.Printf(err.Error())
+			log.Println(err.Error())
 			return shortURL, err
 		}
 	}
