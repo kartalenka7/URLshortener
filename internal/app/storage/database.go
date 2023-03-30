@@ -52,12 +52,12 @@ func InitTable(connString string) error {
 	return nil
 }
 
-func InsertLine(connString string, shortURL string, longURL string, cookie string) (error, string) {
+func InsertLine(connString string, shortURL string, longURL string, cookie string) (string, error) {
 	db, err := sql.Open("postgres",
 		connString)
 	if err != nil {
 		log.Printf("database|Insert Lines|%s\n", err.Error())
-		return err, ""
+		return "", err
 	}
 	defer db.Close()
 
@@ -69,7 +69,7 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 		log.Printf("database|Insert line|%s\n", err.Error())
 		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsBase WHERE long_url = $1", longURL)
 		if errSelect != nil {
-			return errSelect, ""
+			return "", errSelect
 		}
 		defer resSelect.Close()
 
@@ -77,13 +77,19 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 		for resSelect.Next() {
 			errSelect := resSelect.Scan(&link.ShortURL)
 			if errSelect != nil {
-				return errSelect, ""
+				return "", errSelect
 			}
 			log.Printf("Найденный короткий URL %s\n", link.ShortURL)
-			return err, link.ShortURL
+			if link.ShortURL != "" {
+				return link.ShortURL, err
+			}
 		}
 
-		return err, ""
+		if resSelect.Err() != nil {
+			return "", resSelect.Err()
+		}
+
+		return "", err
 	}
 
 	rows, err := res.RowsAffected()
@@ -92,7 +98,7 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 	} else {
 		log.Println(err.Error())
 	}
-	return nil, ""
+	return "", nil
 }
 
 func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]BatchResp, error) {
@@ -162,6 +168,10 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 						log.Printf("Найденный в бд короткий URL %s\n", link.ShortURL)
 						sToken = link.ShortURL
 						break
+					}
+
+					if rows.Err() != nil {
+						return nil, rows.Err()
 					}
 				} else {
 					return nil, err
