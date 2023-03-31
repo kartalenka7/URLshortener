@@ -34,7 +34,7 @@ func InitTable(connString string) error {
 	defer cancel()
 
 	_, err = db.ExecContext(ctx,
-		"CREATE TABLE IF NOT EXISTS urlsBase("+
+		"CREATE TABLE IF NOT EXISTS urlsStorage("+
 			`"short_url" TEXT,`+
 			`"long_url" TEXT ,`+
 			`"cookie" TEXT`+
@@ -44,7 +44,7 @@ func InitTable(connString string) error {
 		return err
 	}
 	_, err = db.ExecContext(ctx,
-		`ALTER TABLE urlsBase ADD CONSTRAINT long_url UNIQUE (long_url);`)
+		`ALTER TABLE urlsStorage ADD CONSTRAINT long_url UNIQUE (long_url);`)
 	if err != nil {
 		log.Printf("database|Ошибка при добавлении индекса|%s\n", err.Error())
 		return err
@@ -64,10 +64,10 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := db.ExecContext(ctx, "INSERT INTO urlsBase(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
+	res, err := db.ExecContext(ctx, "INSERT INTO urlsStorage(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
 	if err != nil {
 		log.Printf("database|Insert line|%s\n", err.Error())
-		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsBase WHERE long_url = $1", longURL)
+		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsStorage WHERE long_url = $1", longURL)
 		if errSelect != nil {
 			return "", errSelect
 		}
@@ -121,7 +121,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 	defer cancel()
 
 	// готовим инструкцию
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsBase(short_url, long_url, cookie) VALUES ($1, $2, $3)")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsStorage(short_url, long_url, cookie) VALUES ($1, $2, $3)")
 	if err != nil {
 		return nil, err
 	}
@@ -129,7 +129,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 	defer stmt.Close()
 
 	// готовим инструкцию для выборки уже существующих сокращенных URL
-	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsBase WHERE long_url = $1")
+	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsStorage WHERE long_url = $1")
 	if errSelect != nil {
 		return nil, err
 	}
@@ -209,7 +209,7 @@ func SelectLines(connString string, limit int) ([]LinksData, error) {
 	var link LinksData
 	linksAll := make([]LinksData, 0, limit)
 
-	rows, err := db.QueryContext(ctx, "SELECT short_url, long_url, cookie FROM urlsBase")
+	rows, err := db.QueryContext(ctx, "SELECT short_url, long_url, cookie FROM urlsStorage")
 	if err != nil {
 		return nil, err
 	}
@@ -248,7 +248,7 @@ func SelectLink(connString string, shortURL string) (string, error) {
 	defer db.Close()
 
 	var longURL string
-	err = db.QueryRow("SELECT long_url FROM urlsBase WHERE short_url = $1", shortURL).Scan(&longURL)
+	err = db.QueryRow("SELECT long_url FROM urlsStorage WHERE short_url = $1", shortURL).Scan(&longURL)
 	if err != nil {
 		return "", err
 	}
