@@ -111,7 +111,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 
 	var cookieValue string
 	cookie, err := req.Cookie("User")
-	if err != nil {
+	if err == nil {
 		cookieValue = cookie.Value
 	}
 
@@ -203,22 +203,16 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 	log.Printf("request json %s\n", requestJSON)
 	// добавляем длинный url в хранилище, генерируем токен
+	var cookieValue string
 	cookie, err := req.Cookie("User")
-	if err != nil {
-		log.Printf("handlers|shortenJSON|%s\n", err.Error())
-		gToken, errToken = s.storage.AddLink(requestJSON.LongURL, "")
-		if errToken != nil {
-			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
-			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-			return
-		}
-	} else {
-		gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookie.Value)
-		if errToken != nil {
-			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
-			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-			return
-		}
+	if err == nil {
+		cookieValue = cookie.Value
+	}
+	gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookieValue)
+	if errToken != nil {
+		log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+		http.Error(rw, errToken.Error(), http.StatusInternalServerError)
+		return
 	}
 
 	// записываем ссылки из мапы в файл
