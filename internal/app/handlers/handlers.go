@@ -56,7 +56,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 
 	var cookieValue string
 	cookie, err := req.Cookie("User")
-	if err != nil {
+	if err == nil {
 		cookieValue = cookie.Value
 	}
 
