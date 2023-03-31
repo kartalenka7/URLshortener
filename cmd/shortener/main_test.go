@@ -76,11 +76,11 @@ func TestPOST(t *testing.T) {
 
 			var buf bytes.Buffer
 			zw := gzip.NewWriter(&buf)
-			_, _ = zw.Write([]byte("https://www.pinterest1.com"))
+			_, _ = zw.Write([]byte("https://www.pinterest5.com"))
 			_ = zw.Close()
 
 			data := url.Values{}
-			data.Set("url", "https://www.pinterest1.com")
+			data.Set("url", "https://www.pinterest5.com")
 
 			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
 			require.NoError(t, err)
@@ -195,10 +195,10 @@ func TestGET(t *testing.T) {
 	}{
 		{
 			name:    "GET positive test",
-			longURL: "https://www.pinterest2.com",
+			longURL: "https://www.pinterest7.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.pinterest2.com\": Redirect",
+				err:        "Get \"https://www.pinterest7.com\": Redirect",
 			},
 			method: http.MethodGet,
 		},
@@ -292,7 +292,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	bodyStr := struct {
 		LongURL string `json:"url"`
 	}{
-		LongURL: "https://www.pinterest3.com",
+		LongURL: "https://www.pinterest6.com",
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)
