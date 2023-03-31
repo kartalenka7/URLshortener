@@ -72,12 +72,15 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 			sToken = shortURL
 		}
 	}
+	log.Printf("мапа со ссылками %s\n", s.linksMap)
 	_, ok := s.linksMap[sToken]
 	if ok {
+		log.Println("link already exists")
 		return "", errors.New("link already exists")
 	}
 
 	s.linksMap[sToken] = longURL
+	log.Printf("мапа со ссылками %s\n", s.linksMap)
 	s.cookiesMap[sToken] = user
 	log.Printf("Мапа с куки %s\n", s.cookiesMap)
 	return sToken, err
