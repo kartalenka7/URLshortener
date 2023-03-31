@@ -79,6 +79,7 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 
 	s.linksMap[sToken] = longURL
 	s.cookiesMap[sToken] = user
+	log.Printf("Мапа с куки %s\n", s.cookiesMap)
 	return sToken, err
 }
 
@@ -100,6 +101,7 @@ func (s StorageLinks) WriteInFile() {
 			LongURL:  long,
 			User:     s.cookiesMap[short],
 		}
+		log.Println(links)
 		if err := producer.WriteLinks(&links); err != nil {
 			log.Println(err.Error())
 			log.Fatal(err)

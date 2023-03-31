@@ -60,7 +60,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		cookieValue = cookie.Value
 	}
 
-	log.Println(cookie)
 	log.Printf("Возвращены куки %s\n", cookie)
 	http.SetCookie(rw, cookie)
 
@@ -275,7 +274,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 	links := s.storage.GetAllURLS(user.Value)
 
 	if len(links) == 0 {
-		// не нашли сокращенных пользователем URL
+		log.Printf("Не нашли сокращенных пользователем URL")
 		rw.WriteHeader(http.StatusNoContent)
 		return
 	}
