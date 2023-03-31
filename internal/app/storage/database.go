@@ -47,7 +47,6 @@ func InitTable(connString string) error {
 		`ALTER TABLE urlsStorage ADD CONSTRAINT long_url UNIQUE (long_url);`)
 	if err != nil {
 		log.Printf("database|Ошибка при добавлении индекса|%s\n", err.Error())
-		return err
 	}
 	return nil
 }
