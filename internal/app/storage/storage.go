@@ -62,6 +62,13 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 		sToken = s.config.BaseURL + "/" + gToken
 		log.Printf("Short URL %s", sToken)
 	}
+
+	_, ok := s.linksMap[sToken]
+	if ok {
+		log.Println("link already exists")
+		return "", errors.New("link already exists")
+	}
+
 	log.Printf("Database conn %s\n", s.config.Database)
 	if s.config.Database != "" {
 		log.Printf("Записываем в бд %s %s\n", sToken, longURL)
@@ -72,13 +79,6 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 			sToken = shortURL
 		}
 	}
-	log.Printf("мапа со ссылками %s\n", s.linksMap)
-	_, ok := s.linksMap[sToken]
-	if ok {
-		log.Println("link already exists")
-		return "", errors.New("link already exists")
-	}
-
 	s.linksMap[sToken] = longURL
 	log.Printf("мапа со ссылками %s\n", s.linksMap)
 	s.cookiesMap[sToken] = user
