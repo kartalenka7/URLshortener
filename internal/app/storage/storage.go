@@ -12,7 +12,6 @@ import (
 
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
-	"github.com/lib/pq"
 )
 
 // слой хранилища
@@ -86,10 +85,6 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	s.cookiesMap[sToken] = user
 	//log.Printf("Мапа с куки %s\n", s.cookiesMap)
 
-	var pqErr *pq.Error
-	if errors.As(err, &pqErr) {
-		log.Println(pqErr.Code)
-	}
 	return sToken, err
 }
 

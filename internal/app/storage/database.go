@@ -79,11 +79,10 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 				return "", errSelect
 			}
 			log.Printf("Найденный короткий URL %s\n", link.ShortURL)
-			if link.ShortURL != "" {
-				var pqErr *pq.Error
-				if errors.As(err, &pqErr) {
-					log.Println(pqErr.Code)
-				}
+
+			var pqErr *pq.Error
+			if errors.As(err, &pqErr) {
+				log.Println(pqErr.Code)
 				return link.ShortURL, err
 			}
 		}

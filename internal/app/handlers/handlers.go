@@ -208,11 +208,34 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	if err == nil {
 		cookieValue = cookie.Value
 	}
+
+	fmt.Printf("Возвращены куки %s\n", cookie)
+	//req.AddCookie(cookie)
+	http.SetCookie(rw, cookie)
+
+	rw.Header().Set("Content-Type", contentTypeJSON)
+
 	gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookieValue)
+	var pqErr *pq.Error
 	if errToken != nil {
-		log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
-		http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-		return
+		if errors.As(errToken, &pqErr) {
+			if pqErr.Code == uniqViolation {
+				// попытка сократить уже имеющийся в базе URL
+				// возвращаем ответ с кодом 409
+				rw.WriteHeader(http.StatusConflict)
+			} else {
+				log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+				http.Error(rw, errToken.Error(), http.StatusInternalServerError)
+				return
+			}
+		} else {
+			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
+			return
+		}
+	} else {
+		// возвращаем ответ с кодом 201
+		rw.WriteHeader(http.StatusCreated)
 	}
 
 	// записываем ссылки из мапы в файл
@@ -223,14 +246,6 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		ShortURL: gToken,
 	}
 	log.Printf("short url %s\n", response.ShortURL)
-
-	fmt.Printf("Возвращены куки %s\n", cookie)
-	//req.AddCookie(cookie)
-	http.SetCookie(rw, cookie)
-
-	rw.Header().Set("Content-Type", contentTypeJSON)
-	// возвращаем ответ с кодом 201
-	rw.WriteHeader(http.StatusCreated)
 
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL
