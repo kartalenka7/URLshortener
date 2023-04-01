@@ -12,6 +12,7 @@ import (
 
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
+	"github.com/lib/pq"
 )
 
 // слой хранилища
@@ -54,6 +55,7 @@ func (s StorageLinks) GetStorageLen() int {
 
 func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	var err error
+	var shortURL string
 	gToken := utils.RandStringBytes(10)
 	log.Println(gToken)
 	sToken := s.config.BaseURL + gToken
@@ -72,7 +74,7 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	log.Printf("Database conn %s\n", s.config.Database)
 	if s.config.Database != "" {
 		log.Printf("Записываем в бд %s %s\n", sToken, longURL)
-		shortURL, err := InsertLine(s.config.Database, sToken, longURL, user)
+		shortURL, err = InsertLine(s.config.Database, sToken, longURL, user)
 		if err != nil {
 			log.Println(err.Error())
 			//return shortURL, err
@@ -80,9 +82,14 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 		}
 	}
 	s.linksMap[sToken] = longURL
-	log.Printf("мапа со ссылками %s\n", s.linksMap)
+	//log.Printf("мапа со ссылками %s\n", s.linksMap)
 	s.cookiesMap[sToken] = user
-	log.Printf("Мапа с куки %s\n", s.cookiesMap)
+	//log.Printf("Мапа с куки %s\n", s.cookiesMap)
+
+	var pqErr *pq.Error
+	if errors.As(err, &pqErr) {
+		log.Println(pqErr.Code)
+	}
 	return sToken, err
 }
 
