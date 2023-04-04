@@ -10,8 +10,6 @@ import (
 
 	//"database/sql"
 
-	"database/sql"
-
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
@@ -22,7 +20,7 @@ type StorageLinks struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
 	config     config.Config
-	db         *sql.DB
+	db         DB
 }
 
 // Структура для записи в файл

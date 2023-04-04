@@ -13,19 +13,24 @@ import (
 )
 
 type DB struct {
-	db   *sql.DB
-	stmt *sql.Stmt
+	db         *sql.DB
+	stmtInsert *sql.Stmt
+	stmtSelect *sql.Stmt
 }
 
 const uniqViolation = pq.ErrorCode("23505")
 
-var createSQL = `CREATE TABLE IF NOT EXISTS urlsStore(
+var (
+	createSQL = `CREATE TABLE IF NOT EXISTS urlsStore(
 					"short_url" TEXT,
 					"long_url" TEXT UNIQUE,
 					"cookie" TEXT 
 					);;`
+	insertSQL      = `INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)`
+	selectShortURL = `SELECT short_url FROM urlsStore WHERE long_url = $1`
+)
 
-func InitTable(connString string) (*sql.DB, error) {
+func InitTable(connString string) (DB, error) {
 	log.Println("Инициализация таблицы")
 
 	// открываем соединение с бд
@@ -33,9 +38,8 @@ func InitTable(connString string) (*sql.DB, error) {
 		connString)
 	if err != nil {
 		log.Printf("database|Init table|%s\n", err.Error())
-		return nil, err
+		return DB{}, err
 	}
-	//defer db.Close()
 
 	// конструируем контекст с 5-секундным тайм-аутом
 	// после 5 секунд затянувшаяся операция с БД будет прервана
@@ -45,43 +49,41 @@ func InitTable(connString string) (*sql.DB, error) {
 
 	if _, err = db.ExecContext(ctx, createSQL); err != nil {
 		log.Printf("database|Ошибка при создании таблицы|%s\n", err.Error())
-		return nil, err
+		return DB{}, err
 	}
 
-	/* _, err = db.ExecContext(ctx,
-		"CREATE TABLE IF NOT EXISTS urlsStorage("+
-			`"short_url" TEXT,`+
-			`"long_url" TEXT ,`+
-			`"cookie" TEXT`+
-			`);`)
+	stmtInsert, err := db.Prepare(insertSQL)
 	if err != nil {
-		log.Printf("database|Ошибка при создании таблицы|%s\n", err.Error())
-		return nil, err
+		log.Printf("database|Ошибка при подготовке Insert|%s\n", err.Error())
+		return DB{}, err
 	}
-	_, err = db.ExecContext(ctx,
-		`ALTER TABLE urlsStorage ADD CONSTRAINT long_url UNIQUE (long_url);`)
-	if err != nil {
-		log.Printf("database|Ошибка при добавлении индекса|%s\n", err.Error())
-	} */
 
-	return db, nil
+	stmtSelect, err := db.Prepare(selectShortURL)
+
+	dbStruct := DB{
+		db:         db,
+		stmtInsert: stmtInsert,
+		stmtSelect: stmtSelect,
+	}
+	return dbStruct, nil
 }
 
-func (db *DB) Close() {
+func (db DB) Close() {
 	defer func() {
-		db.stmt.Close()
+		db.stmtSelect.Close()
+		db.stmtInsert.Close()
 		db.Close()
 	}()
 }
 
-func InsertLine(db *sql.DB, shortURL string, longURL string, cookie string) (string, error) {
+func InsertLine(db DB, shortURL string, longURL string, cookie string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := db.ExecContext(ctx, "INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
+	res, err := db.stmtInsert.ExecContext(ctx, shortURL, longURL, cookie)
 	if err != nil {
 		log.Printf("database|Insert line|%s\n", err.Error())
-		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsStore WHERE long_url = $1", longURL)
+		resSelect, errSelect := db.stmtSelect.QueryContext(ctx, longURL)
 		if errSelect != nil {
 			return "", errSelect
 		}
@@ -118,10 +120,10 @@ func InsertLine(db *sql.DB, shortURL string, longURL string, cookie string) (str
 	return "", nil
 }
 
-func ShortenBatch(batchReq []BatchReq, db *sql.DB, baseURL string, cookie string) ([]BatchResp, error) {
+func ShortenBatch(batchReq []BatchReq, db DB, baseURL string, cookie string) ([]BatchResp, error) {
 
 	// объявляем транзакцию
-	tx, err := db.Begin()
+	tx, err := db.db.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -132,20 +134,20 @@ func ShortenBatch(batchReq []BatchReq, db *sql.DB, baseURL string, cookie string
 	// не забываем освободить ресурс
 	defer cancel()
 
-	// готовим инструкцию
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)")
-	if err != nil {
-		return nil, err
-	}
-	// не забываем закрыть инструкцию, когда она больше не нужна
-	defer stmt.Close()
+	/* 	// готовим инструкцию
+	   	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)")
+	   	if err != nil {
+	   		return nil, err
+	   	}
+	   	// не забываем закрыть инструкцию, когда она больше не нужна
+	   	defer stmt.Close()
 
-	// готовим инструкцию для выборки уже существующих сокращенных URL
-	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsStore WHERE long_url = $1")
-	if errSelect != nil {
-		return nil, err
-	}
-	defer stmtSelect.Close()
+	   	// готовим инструкцию для выборки уже существующих сокращенных URL
+	   	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsStore WHERE long_url = $1")
+	   	if errSelect != nil {
+	   		return nil, err
+	   	}
+	   	defer stmtSelect.Close() */
 
 	response := make([]BatchResp, 0, 100)
 	var link LinksData
@@ -162,13 +164,13 @@ func ShortenBatch(batchReq []BatchReq, db *sql.DB, baseURL string, cookie string
 		}
 
 		log.Printf("Записываем в бд %s, %s \n", sToken, batchValue.URL)
-		if _, errStmt = stmt.ExecContext(ctx, sToken, batchValue.URL, cookie); errStmt != nil {
+		if _, errStmt = db.stmtInsert.ExecContext(ctx, sToken, batchValue.URL, cookie); errStmt != nil {
 			log.Printf("database|Insert line|%s\n", errStmt.Error())
 			var pqErr *pq.Error
 			if errors.As(errStmt, &pqErr) {
 				if pqErr.Code == uniqViolation {
 					// попытка сократить уже имеющийся в базе URL
-					rows, err := stmt.QueryContext(ctx, batchValue.URL)
+					rows, err := db.stmtSelect.QueryContext(ctx, batchValue.URL)
 					if err != nil {
 						return nil, err
 					}
@@ -249,10 +251,10 @@ func SelectLines(connString string, limit int) ([]LinksData, error) {
 	return linksAll, nil
 }
 
-func SelectLink(db *sql.DB, shortURL string) (string, error) {
+func SelectLink(db DB, shortURL string) (string, error) {
 	log.Println("Ищем длинный URL в бд")
 	var longURL string
-	err := db.QueryRow("SELECT long_url FROM urlsStore WHERE short_url = $1", shortURL).Scan(&longURL)
+	err := db.db.QueryRow("SELECT long_url FROM urlsStore WHERE short_url = $1", shortURL).Scan(&longURL)
 	if err != nil {
 		return "", err
 	}
