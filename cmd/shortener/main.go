@@ -25,4 +25,6 @@ func main() {
 
 	log.Println(cfg.Server)
 	log.Fatal(http.ListenAndServe(cfg.Server, router))
+
+	storage.Close()
 }

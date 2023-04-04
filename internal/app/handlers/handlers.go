@@ -116,6 +116,8 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
+	fmt.Printf("Возвращены куки %s\n", cookie)
+	http.SetCookie(rw, cookie)
 
 	response, err := s.storage.ShortenBatchTr(buffer, cookieValue)
 	if err != nil {
@@ -138,10 +140,6 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 		// возвращаем ответ с кодом 201
 		rw.WriteHeader(http.StatusCreated)
 	}
-
-	/* 	fmt.Printf("Возвращены куки %s\n", cookie)
-	   	//req.AddCookie(cookie)
-	   	http.SetCookie(rw, cookie) */
 
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL

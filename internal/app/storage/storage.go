@@ -10,6 +10,8 @@ import (
 
 	//"database/sql"
 
+	"database/sql"
+
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
@@ -20,6 +22,7 @@ type StorageLinks struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
 	config     config.Config
+	db         *sql.DB
 }
 
 // Структура для записи в файл
@@ -30,12 +33,13 @@ type LinksData struct {
 }
 
 func NewStorage(cfg config.Config) *StorageLinks {
+	var err error
 	links := &StorageLinks{
 		linksMap:   make(map[string]string),
 		cookiesMap: map[string]string{}}
 	links.config = cfg
 	if links.config.Database != "" {
-		err := InitTable(links.config.Database)
+		links.db, err = InitTable(links.config.Database)
 		if err != nil {
 			log.Println("Не учитываем таблицу бд")
 			links.config.Database = ""
@@ -50,6 +54,12 @@ func NewStorage(cfg config.Config) *StorageLinks {
 
 func (s StorageLinks) GetStorageLen() int {
 	return len(s.linksMap)
+}
+
+func (s StorageLinks) Close() {
+	if s.config.Database != "" {
+		s.db.Close()
+	}
 }
 
 func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
@@ -73,7 +83,7 @@ func (s StorageLinks) AddLink(longURL string, user string) (string, error) {
 	log.Printf("Database conn %s\n", s.config.Database)
 	if s.config.Database != "" {
 		log.Printf("Записываем в бд %s %s\n", sToken, longURL)
-		shortURL, err = InsertLine(s.config.Database, sToken, longURL, user)
+		shortURL, err = InsertLine(s.db, sToken, longURL, user)
 		if err != nil {
 			log.Println(err.Error())
 			//return shortURL, err
@@ -160,7 +170,7 @@ func (s StorageLinks) GetLongURL(sToken string) (string, error) {
 
 	longURL, ok := s.linksMap[longToken]
 	if !ok {
-		longURL, err = SelectLink(s.config.Database, longToken)
+		longURL, err = SelectLink(s.db, longToken)
 		if err != nil {
 			log.Printf("storage|getLongURL|%s\n", err.Error())
 			return "", errors.New("link is not found")
@@ -184,5 +194,5 @@ type BatchResp struct {
 }
 
 func (s StorageLinks) ShortenBatchTr(batchReq []BatchReq, cookie string) ([]BatchResp, error) {
-	return ShortenBatch(batchReq, s.config, cookie)
+	return ShortenBatch(batchReq, s.db, s.config.BaseURL, cookie)
 }

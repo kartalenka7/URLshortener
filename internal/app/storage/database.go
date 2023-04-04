@@ -8,32 +8,47 @@ import (
 	urlNet "net/url"
 	"time"
 
-	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 	"github.com/lib/pq"
 )
 
+type DB struct {
+	db   *sql.DB
+	stmt *sql.Stmt
+}
+
 const uniqViolation = pq.ErrorCode("23505")
 
-func InitTable(connString string) error {
+var createSQL = `CREATE TABLE IF NOT EXISTS urlsStore(
+					"short_url" TEXT,
+					"long_url" TEXT UNIQUE,
+					"cookie" TEXT 
+					);;`
+
+func InitTable(connString string) (*sql.DB, error) {
 	log.Println("Инициализация таблицы")
+
 	// открываем соединение с бд
 	db, err := sql.Open("postgres",
 		connString)
 	if err != nil {
 		log.Printf("database|Init table|%s\n", err.Error())
-		return err
+		return nil, err
 	}
-	defer db.Close()
+	//defer db.Close()
 
-	log.Println("Создаем контекст")
 	// конструируем контекст с 5-секундным тайм-аутом
 	// после 5 секунд затянувшаяся операция с БД будет прервана
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	// не забываем освободить ресурс
 	defer cancel()
 
-	_, err = db.ExecContext(ctx,
+	if _, err = db.ExecContext(ctx, createSQL); err != nil {
+		log.Printf("database|Ошибка при создании таблицы|%s\n", err.Error())
+		return nil, err
+	}
+
+	/* _, err = db.ExecContext(ctx,
 		"CREATE TABLE IF NOT EXISTS urlsStorage("+
 			`"short_url" TEXT,`+
 			`"long_url" TEXT ,`+
@@ -41,32 +56,32 @@ func InitTable(connString string) error {
 			`);`)
 	if err != nil {
 		log.Printf("database|Ошибка при создании таблицы|%s\n", err.Error())
-		return err
+		return nil, err
 	}
 	_, err = db.ExecContext(ctx,
 		`ALTER TABLE urlsStorage ADD CONSTRAINT long_url UNIQUE (long_url);`)
 	if err != nil {
 		log.Printf("database|Ошибка при добавлении индекса|%s\n", err.Error())
-	}
-	return nil
+	} */
+
+	return db, nil
 }
 
-func InsertLine(connString string, shortURL string, longURL string, cookie string) (string, error) {
-	db, err := sql.Open("postgres",
-		connString)
-	if err != nil {
-		log.Printf("database|Insert Lines|%s\n", err.Error())
-		return "", err
-	}
-	defer db.Close()
+func (db *DB) Close() {
+	defer func() {
+		db.stmt.Close()
+		db.Close()
+	}()
+}
 
+func InsertLine(db *sql.DB, shortURL string, longURL string, cookie string) (string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
 
-	res, err := db.ExecContext(ctx, "INSERT INTO urlsStorage(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
+	res, err := db.ExecContext(ctx, "INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)", shortURL, longURL, cookie)
 	if err != nil {
 		log.Printf("database|Insert line|%s\n", err.Error())
-		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsStorage WHERE long_url = $1", longURL)
+		resSelect, errSelect := db.QueryContext(ctx, "SELECT short_url FROM urlsStore WHERE long_url = $1", longURL)
 		if errSelect != nil {
 			return "", errSelect
 		}
@@ -103,13 +118,8 @@ func InsertLine(connString string, shortURL string, longURL string, cookie strin
 	return "", nil
 }
 
-func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]BatchResp, error) {
-	db, err := sql.Open("postgres", config.Database)
-	if err != nil {
-		log.Printf("database|Prepare transaction|%s\n", err.Error())
-		return nil, err
-	}
-	defer db.Close()
+func ShortenBatch(batchReq []BatchReq, db *sql.DB, baseURL string, cookie string) ([]BatchResp, error) {
+
 	// объявляем транзакцию
 	tx, err := db.Begin()
 	if err != nil {
@@ -123,7 +133,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 	defer cancel()
 
 	// готовим инструкцию
-	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsStorage(short_url, long_url, cookie) VALUES ($1, $2, $3)")
+	stmt, err := tx.PrepareContext(ctx, "INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)")
 	if err != nil {
 		return nil, err
 	}
@@ -131,7 +141,7 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 	defer stmt.Close()
 
 	// готовим инструкцию для выборки уже существующих сокращенных URL
-	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsStorage WHERE long_url = $1")
+	stmtSelect, errSelect := tx.PrepareContext(ctx, "SELECT short_url FROM urlsStore WHERE long_url = $1")
 	if errSelect != nil {
 		return nil, err
 	}
@@ -145,10 +155,10 @@ func ShortenBatch(batchReq []BatchReq, config config.Config, cookie string) ([]B
 
 		gToken := utils.RandStringBytes(10)
 		log.Println(gToken)
-		sToken := config.BaseURL + gToken
+		sToken := baseURL + gToken
 		_, urlParseErr := urlNet.Parse(sToken)
 		if urlParseErr != nil {
-			sToken = config.BaseURL + "/" + gToken
+			sToken = baseURL + "/" + gToken
 		}
 
 		log.Printf("Записываем в бд %s, %s \n", sToken, batchValue.URL)
@@ -211,7 +221,7 @@ func SelectLines(connString string, limit int) ([]LinksData, error) {
 	var link LinksData
 	linksAll := make([]LinksData, 0, limit)
 
-	rows, err := db.QueryContext(ctx, "SELECT short_url, long_url, cookie FROM urlsStorage")
+	rows, err := db.QueryContext(ctx, "SELECT short_url, long_url, cookie FROM urlsStore")
 	if err != nil {
 		return nil, err
 	}
@@ -239,18 +249,10 @@ func SelectLines(connString string, limit int) ([]LinksData, error) {
 	return linksAll, nil
 }
 
-func SelectLink(connString string, shortURL string) (string, error) {
+func SelectLink(db *sql.DB, shortURL string) (string, error) {
 	log.Println("Ищем длинный URL в бд")
-	db, err := sql.Open("postgres",
-		connString)
-	if err != nil {
-		log.Printf("database|Select Link|%s\n", err.Error())
-		return "", err
-	}
-	defer db.Close()
-
 	var longURL string
-	err = db.QueryRow("SELECT long_url FROM urlsStorage WHERE short_url = $1", shortURL).Scan(&longURL)
+	err := db.QueryRow("SELECT long_url FROM urlsStore WHERE short_url = $1", shortURL).Scan(&longURL)
 	if err != nil {
 		return "", err
 	}
