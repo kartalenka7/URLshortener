@@ -59,6 +59,10 @@ func InitTable(connString string) (DB, error) {
 	}
 
 	stmtSelect, err := db.Prepare(selectShortURL)
+	if err != nil {
+		log.Printf("database|Ошибка при подготовке Select|%s\n", err.Error())
+		return DB{}, err
+	}
 
 	dbStruct := DB{
 		db:         db,
