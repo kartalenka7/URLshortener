@@ -18,7 +18,10 @@ cmd/shortener/shortener
 
 #logs
 cmd/shortener/link.log
-internal/app/storage.link.log
+internal/app/storage/link.log
+
+internal/app/storage/storage.go
+
 
 # Dependency directories (remove the comment below to include it)
 vendor/

@@ -3,22 +3,17 @@ package handlers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"strings"
 
-	"context"
-	"database/sql"
-	"time"
-
-	"errors"
-
+	"github.com/go-chi/chi/v5"
 	"github.com/lib/pq"
 
-	storage "example.com/shortener/internal/app/storage"
-	"github.com/go-chi/chi/v5"
+	database "example.com/shortener/internal/app/storage/database"
 )
 
 var (
@@ -27,14 +22,6 @@ var (
 	contentTypeJSON = "application/json"
 	encodGzip       = "gzip"
 )
-
-const uniqViolation = pq.ErrorCode("23505")
-
-type Repository interface {
-	AddLink(gToken string, longURL string) error
-	GetLongURL(sToken string) (string, error)
-	GetStorageLen() int
-}
 
 // Структура для парсинга переменных окружения
 
@@ -64,11 +51,13 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	http.SetCookie(rw, cookie)
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, errToken = s.storage.AddLink(url, cookieValue)
+	gToken, errToken = s.service.Storage.AddLink(url, cookieValue, req.Context())
+
+	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
 		var pqErr *pq.Error
 		if errors.As(errToken, &pqErr) {
-			if pqErr.Code == uniqViolation {
+			if pqErr.Code == database.UniqViolation {
 				// попытка сократить уже имеющийся в базе URL
 				// возвращаем ответ с кодом 409
 				rw.WriteHeader(http.StatusConflict)
@@ -83,7 +72,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
+	//s.storage.WriteInFile()
 
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
@@ -101,7 +90,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	//десериализация в слайс
-	buffer := make([]storage.BatchReq, 0, 100)
+	buffer := make([]database.BatchReq, 0, 100)
 
 	if err := decoder.Decode(&buffer); err != nil {
 		log.Printf("handlers|shortenBatch|%s\n", err.Error())
@@ -119,12 +108,12 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	fmt.Printf("Возвращены куки %s\n", cookie)
 	http.SetCookie(rw, cookie)
 
-	response, err := s.storage.ShortenBatchTr(buffer, cookieValue)
+	response, err := s.service.Storage.ShortenBatch(buffer, cookieValue)
 	if err != nil {
 		log.Printf("handlers|shortenBatch|%s\n", err.Error())
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) {
-			if pqErr.Code == uniqViolation {
+			if pqErr.Code == database.UniqViolation {
 				// попытка сократить уже имеющийся в базе URL
 				// возвращаем ответ с кодом 409
 				rw.WriteHeader(http.StatusConflict)
@@ -158,8 +147,9 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	//получаем сокращенный url из параметра
 	shortURL := chi.URLParam(req, paramID)
 	log.Printf("short url %s\n", shortURL)
+
 	// получаем длинный url
-	longURL, err := s.storage.GetLongURL(shortURL)
+	longURL, err := s.service.Storage.GetLongURL(shortURL)
 	if err != nil {
 		log.Printf("handlers|getFullURL|%s\n", err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -213,11 +203,12 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 
-	gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookieValue)
+	//gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookieValue)
+	gToken, errToken = s.service.Storage.AddLink(requestJSON.LongURL, cookieValue, req.Context())
 	var pqErr *pq.Error
 	if errToken != nil {
 		if errors.As(errToken, &pqErr) {
-			if pqErr.Code == uniqViolation {
+			if pqErr.Code == database.UniqViolation {
 				// попытка сократить уже имеющийся в базе URL
 				// возвращаем ответ с кодом 409
 				rw.WriteHeader(http.StatusConflict)
@@ -237,7 +228,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	// записываем ссылки из мапы в файл
-	s.storage.WriteInFile()
+	//s.storage.WriteInFile()
 
 	// формируем json объект ответа
 	response := Response{
@@ -278,7 +269,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Printf("куки value %s\n", user.Value)
-	links := s.storage.GetAllURLS(user.Value)
+	links := s.service.Storage.GetAllURLS(user.Value, req.Context())
 
 	if len(links) == 0 {
 		log.Printf("Не нашли сокращенных пользователем URL")
@@ -309,26 +300,30 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, buf)
 }
 
-func (s *Server) PostgresConnection(rw http.ResponseWriter, req *http.Request) {
+func (s *Server) PingConnection(rw http.ResponseWriter, req *http.Request) {
 	log.Println("Ping")
-	connString := s.storage.GetConnSrtring()
-	//db, err := pgx.Connect(context.Background(), connString)
-	db, err := sql.Open("postgres",
-		connString)
-	if err != nil {
-		log.Printf("handlers|PostgresConnection|%s\n", err.Error())
-		http.Error(rw, err.Error(), http.StatusInternalServerError)
-		return
-	}
-	//defer db.Close(context.Background())
-	defer db.Close()
+	/* 	connString := s.storage.GetConnSrtring()
+	   	//db, err := pgx.Connect(context.Background(), connString)
+	   	db, err := sql.Open("postgres",
+	   		connString)
+	   	if err != nil {
+	   		log.Printf("handlers|PostgresConnection|%s\n", err.Error())
+	   		http.Error(rw, err.Error(), http.StatusInternalServerError)
+	   		return
+	   	}
+	   	//defer db.Close(context.Background())
+	   	defer db.Close()
 
-	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	defer cancel()
-	//if err = db.Ping(ctx); err != nil {
-	if err = db.PingContext(ctx); err != nil {
-		log.Println(err.Error())
+	   	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	   	defer cancel()
+	   	//if err = db.Ping(ctx); err != nil {
+	   	if err = db.PingContext(ctx); err != nil {
+	   		log.Println(err.Error())
+	   		rw.WriteHeader(http.StatusInternalServerError)
+	   	} */
+	if s.service.Storage.Ping(req.Context()) != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
+	} else {
+		rw.WriteHeader(http.StatusOK)
 	}
-	rw.WriteHeader(http.StatusOK)
 }

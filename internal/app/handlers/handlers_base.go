@@ -3,18 +3,18 @@ package handlers
 import (
 	"log"
 
-	"example.com/shortener/internal/app/storage"
+	service "example.com/shortener/internal/app/storage/service"
 	"github.com/go-chi/chi/v5"
 )
 
 type Server struct {
-	storage storage.StorageLinks
+	service service.Service
 }
 
-func NewRouter(s *storage.StorageLinks) chi.Router {
+func NewRouter(service *service.Service) chi.Router {
 	log.Println("выбираем роутер")
 	serv := &Server{
-		storage: *s,
+		service: *service,
 	}
 
 	// определяем роутер chi
@@ -32,7 +32,7 @@ func NewRouter(s *storage.StorageLinks) chi.Router {
 		// все URL пользователя, которые он сокращал
 		r.Get("/api/user/urls", serv.getUserURLs)
 		// проверка соединения с бд
-		r.Get("/ping", serv.PostgresConnection)
+		r.Get("/ping", serv.PingConnection)
 		// получение полного URL по скоращенному
 		r.Get("/{id}", serv.getFullURL)
 		// сокращение URL

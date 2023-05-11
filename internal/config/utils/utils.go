@@ -10,6 +10,7 @@ import (
 	"log"
 	"math/rand"
 	"net/http"
+	urlNet "net/url"
 	"time"
 )
 
@@ -31,6 +32,18 @@ func RandStringBytes(n int) string {
 		link[i] = letterBytes[rand.Intn(len(letterBytes))]
 	}
 	return string(link)
+}
+
+func GenRandToken(baseURL string) string {
+	gToken := RandStringBytes(10)
+	log.Println(gToken)
+	sToken := baseURL + gToken
+	_, urlParseErr := urlNet.Parse(sToken)
+	if urlParseErr != nil {
+		sToken = baseURL + "/" + gToken
+		log.Printf("Short URL %s", sToken)
+	}
+	return sToken
 }
 
 func generateUserToken(len int) (string, error) {

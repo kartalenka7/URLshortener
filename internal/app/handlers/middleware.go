@@ -1,13 +1,12 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"fmt"
 	"io"
 	"log"
-	"strings"
-
-	"compress/gzip"
 	"net/http"
+	"strings"
 
 	"example.com/shortener/internal/config/utils"
 )

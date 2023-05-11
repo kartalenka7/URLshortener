@@ -3,8 +3,10 @@ package main
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
+	"time"
 
 	"fmt"
 	"io"
@@ -18,7 +20,9 @@ import (
 	"net/http/cookiejar"
 
 	handlers "example.com/shortener/internal/app/handlers"
-	"example.com/shortener/internal/app/storage"
+	database "example.com/shortener/internal/app/storage/database"
+	memory "example.com/shortener/internal/app/storage/memory"
+	service "example.com/shortener/internal/app/storage/service"
 	"example.com/shortener/internal/config"
 
 	"net/url"
@@ -44,6 +48,8 @@ func init() {
 }
 
 func TestPOST(t *testing.T) {
+	var storer service.Storer
+	var err error
 
 	type want struct {
 		statusCode int
@@ -66,21 +72,25 @@ func TestPOST(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-			r := handlers.NewRouter(s)
+			//s := storage.NewStorage(cfg)
+			storer, err = database.New(cfg)
+			if err != nil {
+				storer = memory.New(cfg)
+			}
+			service := service.New(cfg, storer)
+			r := handlers.NewRouter(service)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
 			var respBody []byte
-			var err error
 
 			var buf bytes.Buffer
 			zw := gzip.NewWriter(&buf)
-			_, _ = zw.Write([]byte("https://www.pinterest5.com"))
+			_, _ = zw.Write([]byte("https://www.pinterest20.com"))
 			_ = zw.Close()
 
 			data := url.Values{}
-			data.Set("url", "https://www.pinterest5.com")
+			data.Set("url", "https://www.pinterest20.com")
 
 			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
 			require.NoError(t, err)
@@ -113,75 +123,9 @@ func TestPOST(t *testing.T) {
 	}
 }
 
-/* func TestPOSTConflict(t *testing.T) {
-
-	type want struct {
-		statusCode int
-	}
-	testsPost := []struct {
-		name    string
-		want    want
-		method  string
-		request string
-	}{
-		{
-			name: "POST add two identical URLs",
-			want: want{
-				statusCode: http.StatusCreated,
-			},
-			method:  http.MethodPost,
-			request: "/",
-		},
-	}
-
-	log.Println("Test POST on Conflict")
-	for _, tt := range testsPost {
-		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-			r := handlers.NewRouter(s)
-			ts := httptest.NewServer(r)
-			defer ts.Close()
-
-			var err error
-
-			data := url.Values{}
-			data.Set("url", "https://www.coin.com")
-
-			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(data.Encode()))
-			require.NoError(t, err)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			req.Header.Add("Accept-Encoding", "no")
-
-			client := new(http.Client)
-			resp, err := client.Do(req)
-			require.NoError(t, err)
-
-			fmt.Printf("Возвращенный статус %d\n", resp.StatusCode)
-
-			data = url.Values{}
-			data.Set("url", "https://www.witcher.com")
-			req, err = http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(data.Encode()))
-			require.NoError(t, err)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			req.Header.Add("Accept-Encoding", "no")
-
-			client = new(http.Client)
-			resp, err = client.Do(req)
-
-			if err != nil {
-				log.Println(err.Error())
-			}
-			fmt.Printf("Возвращенный статус %d\n", resp.StatusCode)
-
-		})
-	}
-} */
-
 func TestGET(t *testing.T) {
+	var storer service.Storer
+	var err error
 
 	type want struct {
 		statusCode int
@@ -195,10 +139,10 @@ func TestGET(t *testing.T) {
 	}{
 		{
 			name:    "GET positive test",
-			longURL: "https://www.pinterest7.com",
+			longURL: "https://www.pinterest21.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.pinterest7.com\": Redirect",
+				err:        "Get \"https://www.pinterest21.com\": Redirect",
 			},
 			method: http.MethodGet,
 		},
@@ -206,13 +150,20 @@ func TestGET(t *testing.T) {
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
+			//s := storage.NewStorage(cfg)
+			storer, err = database.New(cfg)
+			if err != nil {
+				storer = memory.New(cfg)
+			}
+			service := service.New(cfg, storer)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := s.AddLink(tt.longURL, "")
+			gToken, err := service.Storage.AddLink(tt.longURL, "", ctx)
 			sToken := strings.Replace(gToken, cfg.BaseURL, "", 1)
 			assert.NoError(t, err)
 
-			r := handlers.NewRouter(s)
+			r := handlers.NewRouter(service)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -248,6 +199,8 @@ func TestGET(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
+	var storer service.Storer
+	var err error
 
 	type want struct {
 		statusCode  int
@@ -272,8 +225,13 @@ func TestJSON(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-			r := handlers.NewRouter(s)
+			//s := storage.NewStorage(cfg)
+			storer, err = database.New(cfg)
+			if err != nil {
+				storer = memory.New(cfg)
+			}
+			service := service.New(cfg, storer)
+			r := handlers.NewRouter(service)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -292,7 +250,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	bodyStr := struct {
 		LongURL string `json:"url"`
 	}{
-		LongURL: "https://www.pinterest6.com",
+		LongURL: "https://www.pinterest22.com",
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)
@@ -313,134 +271,3 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	require.NoError(t, err)
 	return resp.StatusCode, body, resp.Header.Get("Content-Type"), err
 }
-
-/* func TestShortenBatch(t *testing.T) {
-
-	type want struct {
-		statusCode int
-		err        string
-	}
-	testsGet := []struct {
-		name    string
-		longURL string
-		want    want
-		method  string
-	}{
-		{
-			name:    "GET positive test",
-			longURL: "https://www.github.com",
-			want: want{
-				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.github.com\": Redirect",
-			},
-			method: http.MethodGet,
-		},
-	}
-
-	for _, tt := range testsGet {
-		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-			r := handlers.NewRouter(s)
-			ts := httptest.NewServer(r)
-			defer ts.Close()
-
-			// запрос shortenBatch
-			request := "/api/shorten/batch"
-			bodyStr := storage.BatchReq{
-				CorrID: "1",
-				URL:    tt.longURL,
-			}
-			reqSlice := make([]storage.BatchReq, 0, 2)
-			reqSlice = append(reqSlice, bodyStr)
-
-			buf := bytes.NewBuffer([]byte{})
-			encoder := json.NewEncoder(buf)
-			encoder.SetEscapeHTML(false)
-			encoder.Encode(reqSlice)
-
-			req, err := http.NewRequest(http.MethodPost, ts.URL+request, buf)
-			require.NoError(t, err)
-
-			req.Header.Add("Accept-Encoding", "no")
-			client := new(http.Client)
-			resp, err := client.Do(req)
-
-			decoder := json.NewDecoder(resp.Body)
-
-			//десериализация в слайс
-			buffer := make([]storage.BatchResp, 0, 100)
-			err = decoder.Decode(&buffer)
-			if err != nil {
-				log.Println(err.Error())
-			}
-
-			defer req.Body.Close()
-			defer resp.Body.Close()
-
-			for _, batchValue := range buffer {
-				log.Println(batchValue.ShortURL)
-				request = "/" + batchValue.ShortURL
-				break
-			}
-
-			req, err = http.NewRequest(tt.method, ts.URL+request, nil)
-			require.NoError(t, err)
-
-			req.Header.Add("Accept-Encoding", "no")
-			client = new(http.Client)
-			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
-				return errors.New("Redirect")
-			}
-			resp, err = client.Do(req)
-			if err != nil {
-				log.Println(err.Error())
-			}
-			log.Println(resp.StatusCode)
-
-		})
-	}
-
-} */
-
-/* func TestPing(t *testing.T) {
-
-	type want struct {
-		statusCode int
-		err        string
-	}
-	testsGet := []struct {
-		name    string
-		longURL string
-		want    want
-		method  string
-	}{
-		{
-			name: "Ping database",
-			want: want{
-				statusCode: http.StatusOK,
-				err:        "Get \"https://www.github.com\": Redirect",
-			},
-			method: http.MethodGet,
-		},
-	}
-
-	for _, tt := range testsGet {
-		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-
-			r := handlers.NewRouter(s)
-			ts := httptest.NewServer(r)
-			defer ts.Close()
-
-			req, err := http.NewRequest(tt.method, ts.URL+"/ping", nil)
-			require.NoError(t, err)
-			req.Header.Add("Accept-Encoding", "no")
-			client := new(http.Client)
-			resp, err := client.Do(req)
-			require.NoError(t, err)
-			resp.Body.Close()
-			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
-		})
-	}
-}
-*/
