@@ -118,6 +118,10 @@ func (s DBStorage) GetAllURLS(cookie string, ctx context.Context) map[string]str
 		}
 		userLinks[link.ShortURL] = link.LongURL
 	}
+	if rows.Err() != nil {
+		log.Printf("database|GetAllURLs|%s\n", err.Error())
+		return nil
+	}
 	return userLinks
 }
 
@@ -304,7 +308,9 @@ func findErrorURL(db DB, ctx context.Context, URL string) (string, error) {
 		}
 		log.Printf("Найденный в бд короткий URL %s\n", link.ShortURL)
 		sToken = link.ShortURL
-		break
+		if sToken != "" {
+			break
+		}
 	}
 	if rows.Err() != nil {
 		return "", rows.Err()
