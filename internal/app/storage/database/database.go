@@ -119,7 +119,7 @@ func (s DBStorage) GetAllURLS(cookie string, ctx context.Context) map[string]str
 		userLinks[link.ShortURL] = link.LongURL
 	}
 	if rows.Err() != nil {
-		log.Printf("database|GetAllURLs|%s\n", err.Error())
+		log.Printf("database|GetAllURLs|%s\n", rows.Err())
 		return nil
 	}
 	return userLinks
