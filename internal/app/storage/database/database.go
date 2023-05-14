@@ -41,6 +41,7 @@ var (
 	insertSQL      = `INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)`
 	selectShortURL = `SELECT short_url FROM urlsStore WHERE long_url = $1`
 	selectByUser   = `SELECT short_url, long_url FROM urlsStore WHERE cookie = $1`
+	selectLongURL  = `SELECT long_url FROM urlsStore WHERE short_url = $1`
 )
 
 func New(config config.Config) (*DBStorage, error) {
@@ -70,7 +71,7 @@ func (s DBStorage) AddLink(longURL string, user string, ctx context.Context) (st
 	return sToken, err
 }
 
-func (s DBStorage) GetLongURL(sToken string) (string, error) {
+func (s DBStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 
 	longToken := s.config.BaseURL + sToken
 	_, urlParseErr := urlNet.Parse(longToken)
@@ -79,7 +80,8 @@ func (s DBStorage) GetLongURL(sToken string) (string, error) {
 	}
 	log.Printf("longToken %s", longToken)
 
-	longURL, err := SelectLink(s.db, longToken)
+	s.context = ctx
+	longURL, err := s.SelectLink(longToken)
 	if err != nil {
 		log.Printf("storage|getLongURL|%v\n", err)
 		return "", errors.New("link is not found")
@@ -337,14 +339,14 @@ func findErrorURL(db DB, ctx context.Context, URL string) (string, error) {
 	return sToken, nil
 }
 
-func SelectLink(db DB, shortURL string) (string, error) {
+func (s DBStorage) SelectLink(shortURL string) (string, error) {
 	log.Println("Ищем длинный URL в бд")
 	var longURL string
-	err := db.db.QueryRow("SELECT long_url FROM urlsStore WHERE short_url = $1", shortURL).Scan(&longURL)
+	err := s.db.pgxConn.QueryRow(s.context, selectLongURL, shortURL).Scan(&longURL)
+	//err := db.db.QueryRow("SELECT long_url FROM urlsStore WHERE short_url = $1", shortURL).Scan(&longURL)
 	if err != nil {
 		return "", err
 	}
-
 	return longURL, nil
 }
 

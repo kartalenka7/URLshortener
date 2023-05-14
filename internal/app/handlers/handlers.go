@@ -150,7 +150,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("short url %s\n", shortURL)
 
 	// получаем длинный url
-	longURL, err := s.service.Storage.GetLongURL(shortURL)
+	longURL, err := s.service.Storage.GetLongURL(req.Context(), shortURL)
 	if err != nil {
 		log.Printf("handlers|getFullURL|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)

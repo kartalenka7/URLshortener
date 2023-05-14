@@ -55,7 +55,7 @@ func (s MemoryStorage) AddLink(longURL string, user string, ctx context.Context)
 	return sToken, err
 }
 
-func (s MemoryStorage) GetLongURL(sToken string) (string, error) {
+func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 	var err error
 
 	longToken := s.config.BaseURL + sToken

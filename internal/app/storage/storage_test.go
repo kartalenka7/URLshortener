@@ -62,7 +62,7 @@ func TestStorage(t *testing.T) {
 			}
 
 			// Получаем ссылку
-			got, err := s.Storage.GetLongURL(gToken)
+			got, err := s.Storage.GetLongURL(ctx, gToken)
 			assert.Equal(t, got, tt.longURL)
 			assert.NoError(t, err)
 		})
