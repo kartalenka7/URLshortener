@@ -13,7 +13,7 @@ type Storer interface {
 	GetLongURL(sToken string) (string, error)
 	Ping(ctx context.Context) error
 	GetAllURLS(cookie string, ctx context.Context) map[string]string
-	ShortenBatch(batchReq []database.BatchReq, cookie string) ([]database.BatchResp, error)
+	ShortenBatch(ctx context.Context, batchReq []database.BatchReq, cookie string) ([]database.BatchResp, error)
 	Close()
 
 	GetStorageLen() int

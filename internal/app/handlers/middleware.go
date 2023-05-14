@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"compress/gzip"
-	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -26,7 +25,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			// Распаковать длинный url из body с помощью gzip
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
+				log.Printf("handlers_base|gzipHandle|%v\n", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				next.ServeHTTP(w, r)
 				return
@@ -35,7 +34,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			// при чтении вернётся распакованный слайс байт
 			b, err := io.ReadAll(gz)
 			if err != nil {
-				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
+				log.Printf("handlers_base|gzipHandle|%v\n", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
@@ -48,6 +47,20 @@ func gzipHandle(next http.Handler) http.Handler {
 	})
 }
 
+func AddCookie(r *http.Request) error {
+	log.Println("Не нашли куки User")
+	Usercookie := http.Cookie{}
+	Usercookie, err := utils.WriteCookies()
+	if err != nil {
+		log.Printf("handlers_base|userAuth|%v\n", err)
+		return err
+	}
+	// выдать пользователю симметрично подписанную куку
+	log.Printf("куки %s\n", &Usercookie)
+	r.AddCookie(&Usercookie)
+	return nil
+}
+
 func userAuth(next http.Handler) http.Handler {
 	log.Println("middleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -55,24 +68,17 @@ func userAuth(next http.Handler) http.Handler {
 		// получаем куки
 		cookie, err := r.Cookie("User")
 		if err != nil {
-			fmt.Println("Не нашли куки User")
-			Usercookie := http.Cookie{}
-			Usercookie, err := utils.WriteCookies()
-			if err != nil {
-				log.Printf("handlers_base|userAuth|%s\n", err.Error())
+			if err = AddCookie(r); err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			// куки не найдены, выдать пользователю симметрично подписанную куку
-			log.Printf("куки %s\n", &Usercookie)
-			r.AddCookie(&Usercookie)
 			next.ServeHTTP(w, r)
 			return
 		}
 		log.Printf("Нашли куки %s\n", cookie)
 		err = utils.ReadCookies(*cookie)
 		if err != nil {
-			log.Printf("handlers_base|userAuth|%s\n", err.Error())
+			log.Printf("handlers_base|userAuth|%v\n", err)
 			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}

@@ -184,9 +184,9 @@ func TestGET(t *testing.T) {
 			resp, err := client.Do(req)
 			resp.Body.Close()
 
-			fmt.Println("After 2st request:")
+			log.Println("After 2st request:")
 			for _, cookie := range jar.Cookies(req.URL) {
-				fmt.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
+				log.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
 			}
 			//statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)

@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/jackc/pgx"
 	"github.com/lib/pq"
 
 	database "example.com/shortener/internal/app/storage/database"
@@ -34,7 +35,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
-		log.Printf("handlers|shortenURL|%s\n", err.Error())
+		log.Printf("handlers|shortenURL|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -55,9 +56,9 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 
 	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
-		var pqErr *pq.Error
-		if errors.As(errToken, &pqErr) {
-			if pqErr.Code == database.UniqViolation {
+		var pgxError *pgx.PgError
+		if errors.As(errToken, &pgxError) {
+			if pgxError.Code == database.UniqViolation {
 				// попытка сократить уже имеющийся в базе URL
 				// возвращаем ответ с кодом 409
 				rw.WriteHeader(http.StatusConflict)
@@ -93,7 +94,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	buffer := make([]database.BatchReq, 0, 100)
 
 	if err := decoder.Decode(&buffer); err != nil {
-		log.Printf("handlers|shortenBatch|%s\n", err.Error())
+		log.Printf("handlers|shortenBatch|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -108,23 +109,23 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	fmt.Printf("Возвращены куки %s\n", cookie)
 	http.SetCookie(rw, cookie)
 
-	response, err := s.service.Storage.ShortenBatch(buffer, cookieValue)
+	response, err := s.service.Storage.ShortenBatch(req.Context(), buffer, cookieValue)
 	if err != nil {
-		log.Printf("handlers|shortenBatch|%s\n", err.Error())
-		var pqErr *pq.Error
-		if errors.As(err, &pqErr) {
-			if pqErr.Code == database.UniqViolation {
-				// попытка сократить уже имеющийся в базе URL
-				// возвращаем ответ с кодом 409
-				rw.WriteHeader(http.StatusConflict)
-			} else {
-				http.Error(rw, err.Error(), http.StatusBadRequest)
-				return
-			}
-		} else {
-			http.Error(rw, err.Error(), http.StatusBadRequest)
-			return
-		}
+		/* 		log.Printf("handlers|shortenBatch|%v\n", err)
+		   		var pgxError *pgx.PgError
+		   		if errors.As(err, &pgxError) {
+		   			if pgxError.Code == database.UniqViolation {
+		   				// попытка сократить уже имеющийся в базе URL
+		   				// возвращаем ответ с кодом 409
+		   				rw.WriteHeader(http.StatusConflict)
+		   			} else {
+		   				http.Error(rw, err.Error(), http.StatusBadRequest)
+		   				return
+		   			}
+		   		} else { */
+		http.Error(rw, err.Error(), http.StatusBadRequest)
+		return
+		//}
 	} else {
 		// возвращаем ответ с кодом 201
 		rw.WriteHeader(http.StatusCreated)
@@ -151,7 +152,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	// получаем длинный url
 	longURL, err := s.service.Storage.GetLongURL(shortURL)
 	if err != nil {
-		log.Printf("handlers|getFullURL|%s\n", err.Error())
+		log.Printf("handlers|getFullURL|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -184,7 +185,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	//десериализация
 	requestJSON := Request{}
 	if err := decoder.Decode(&requestJSON); err != nil {
-		log.Printf("handlers|shortenJSON|%s\n", err.Error())
+		log.Printf("handlers|shortenJSON|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -264,7 +265,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 	log.Println("Get all urls for user")
 	user, err := req.Cookie("User")
 	if err != nil {
-		log.Printf("handlers|getUserURLs|%s\n", err.Error())
+		log.Printf("handlers|getUserURLs|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -302,25 +303,6 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 
 func (s *Server) PingConnection(rw http.ResponseWriter, req *http.Request) {
 	log.Println("Ping")
-	/* 	connString := s.storage.GetConnSrtring()
-	   	//db, err := pgx.Connect(context.Background(), connString)
-	   	db, err := sql.Open("postgres",
-	   		connString)
-	   	if err != nil {
-	   		log.Printf("handlers|PostgresConnection|%s\n", err.Error())
-	   		http.Error(rw, err.Error(), http.StatusInternalServerError)
-	   		return
-	   	}
-	   	//defer db.Close(context.Background())
-	   	defer db.Close()
-
-	   	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
-	   	defer cancel()
-	   	//if err = db.Ping(ctx); err != nil {
-	   	if err = db.PingContext(ctx); err != nil {
-	   		log.Println(err.Error())
-	   		rw.WriteHeader(http.StatusInternalServerError)
-	   	} */
 	if s.service.Storage.Ping(req.Context()) != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 	} else {

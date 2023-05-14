@@ -83,7 +83,7 @@ func WriteCookies() (http.Cookie, error) {
 func ReadCookies(cookie http.Cookie) error {
 	signedValue, err := base64.URLEncoding.DecodeString(cookie.Value)
 	if err != nil {
-		log.Printf("utils|readCookies|%s\n", err.Error())
+		log.Printf("utils|readCookies|%v\n", err)
 		return err
 	}
 
