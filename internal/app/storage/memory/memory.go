@@ -77,11 +77,11 @@ func (s MemoryStorage) GetStorageLen() int {
 }
 
 func (s MemoryStorage) Ping(ctx context.Context) error {
-	return errors.New("База данных не активна")
+	return errors.New("база данных не активна")
 }
 
 func (s MemoryStorage) ShortenBatch(ctx context.Context, batchReq []database.BatchReq, cookie string) ([]database.BatchResp, error) {
-	return nil, errors.New("База данных не активна")
+	return nil, errors.New("база данных не активна")
 }
 
 func (s MemoryStorage) Close() {

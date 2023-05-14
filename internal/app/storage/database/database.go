@@ -295,7 +295,7 @@ func (s DBStorage) ShortenBatch(ctx context.Context, batchReq []BatchReq, cookie
 	}
 
 	br := s.db.pgxConn.SendBatch(ctx, batch)
-	for _, _ = range batchReq {
+	for range batchReq {
 		_, err := br.Exec()
 		if err != nil {
 			log.Printf("database|Batch req error|%v\n", err)
