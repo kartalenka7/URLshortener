@@ -33,15 +33,15 @@ type DB struct {
 const UniqViolation = "23505"
 
 var (
-	createSQL = `CREATE TABLE IF NOT EXISTS urlStorage(
+	createSQL = `CREATE TABLE IF NOT EXISTS storage(
 					short_url TEXT,
 					long_url TEXT UNIQUE,
 					cookie TEXT 
 					);`
-	insertSQL      = `INSERT INTO urlsStore(short_url, long_url, cookie) VALUES ($1, $2, $3)`
-	selectShortURL = `SELECT short_url FROM urlStorage WHERE long_url = $1`
-	selectByUser   = `SELECT short_url, long_url FROM urlStorage WHERE cookie = $1`
-	selectLongURL  = `SELECT long_url FROM urlStorage WHERE short_url = $1`
+	insertSQL      = `INSERT INTO storage(short_url, long_url, cookie) VALUES ($1, $2, $3)`
+	selectShortURL = `SELECT short_url FROM storage WHERE long_url = $1`
+	selectByUser   = `SELECT short_url, long_url FROM storage WHERE cookie = $1`
+	selectLongURL  = `SELECT long_url FROM storage WHERE short_url = $1`
 )
 
 func New(config config.Config) (*DBStorage, error) {
