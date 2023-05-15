@@ -94,14 +94,15 @@ func (s DBStorage) GetStorageLen() int {
 }
 
 func (s DBStorage) Ping(ctx context.Context) error {
-	db, err := sql.Open("postgres", s.config.Database)
+	pgxConn, err := pgx.Connect(ctx, s.config.Database)
+	//db, err := sql.Open("postgres", s.config.Database)
 	if err != nil {
 		log.Printf("database|Ping|%v\n", err)
 		return err
 	}
-	defer db.Close()
+	defer pgxConn.Close(ctx)
 
-	return db.PingContext(ctx)
+	return pgxConn.Ping(ctx)
 }
 
 func (s DBStorage) GetAllURLS(cookie string, ctx context.Context) map[string]string {
