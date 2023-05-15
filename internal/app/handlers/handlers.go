@@ -11,8 +11,7 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx"
-	"github.com/lib/pq"
+	"github.com/jackc/pgx/v5/pgconn"
 
 	database "example.com/shortener/internal/app/storage/database"
 )
@@ -56,7 +55,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 
 	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
-		var pgxError *pgx.PgError
+		var pgxError *pgconn.PgError
 		if errors.As(errToken, &pgxError) {
 			if pgxError.Code == database.UniqViolation {
 				// попытка сократить уже имеющийся в базе URL
@@ -206,10 +205,10 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 	//gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookieValue)
 	gToken, errToken = s.service.Storage.AddLink(requestJSON.LongURL, cookieValue, req.Context())
-	var pqErr *pq.Error
+	var pgxError *pgconn.PgError
 	if errToken != nil {
-		if errors.As(errToken, &pqErr) {
-			if pqErr.Code == database.UniqViolation {
+		if errors.As(errToken, &pgxError) {
+			if pgxError.Code == database.UniqViolation {
 				// попытка сократить уже имеющийся в базе URL
 				// возвращаем ответ с кодом 409
 				rw.WriteHeader(http.StatusConflict)

@@ -136,12 +136,12 @@ func InitTable(connString string) (DB, error) {
 
 	// открываем соединение с бд
 
-	db, err := sql.Open("postgres",
-		connString)
-	if err != nil {
-		log.Printf("database|Init table|%v\n", err)
-		return DB{}, err
-	}
+	/* 	db, err := sql.Open("postgres",
+	   		connString)
+	   	if err != nil {
+	   		log.Printf("database|Init table|%v\n", err)
+	   		return DB{}, err
+	   	} */
 
 	// конструируем контекст с 5-секундным тайм-аутом
 	// после 5 секунд затянувшаяся операция с БД будет прервана
@@ -165,30 +165,30 @@ func InitTable(connString string) (DB, error) {
 		return DB{}, err
 	} */
 
-	stmtInsert, err := db.Prepare(insertSQL)
-	if err != nil {
-		log.Printf("database|Ошибка при подготовке Insert|%v\n", err)
-		return DB{}, err
-	}
+	/* 	stmtInsert, err := db.Prepare(insertSQL)
+	   	if err != nil {
+	   		log.Printf("database|Ошибка при подготовке Insert|%v\n", err)
+	   		return DB{}, err
+	   	}
 
-	stmtSelect, err := db.Prepare(selectShortURL)
-	if err != nil {
-		log.Printf("database|Ошибка при подготовке Select|%v\n", err)
-		return DB{}, err
-	}
+	   	stmtSelect, err := db.Prepare(selectShortURL)
+	   	if err != nil {
+	   		log.Printf("database|Ошибка при подготовке Select|%v\n", err)
+	   		return DB{}, err
+	   	}
 
-	stmtUser, err := db.Prepare(selectByUser)
-	if err != nil {
-		log.Printf("database|Ошибка при подготовке Select by User|%v\n", err)
-		return DB{}, err
-	}
+	   	stmtUser, err := db.Prepare(selectByUser)
+	   	if err != nil {
+	   		log.Printf("database|Ошибка при подготовке Select by User|%v\n", err)
+	   		return DB{}, err
+	   	} */
 
 	dbStruct := DB{
 		//db:         db,
-		pgxConn:    pgxConn,
-		stmtInsert: stmtInsert,
-		stmtSelect: stmtSelect,
-		stmtUser:   stmtUser,
+		pgxConn: pgxConn,
+		/* 		stmtInsert: stmtInsert,
+		   		stmtSelect: stmtSelect,
+		   		stmtUser:   stmtUser, */
 	}
 	return dbStruct, nil
 }
