@@ -3,6 +3,7 @@ package models
 type BatchReq struct {
 	CorrID string `json:"correlation_id"`
 	URL    string `json:"original_url"`
+	Cookie string
 }
 
 type BatchResp struct {

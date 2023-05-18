@@ -111,21 +111,8 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 
 	response, err := s.service.Storage.ShortenBatch(req.Context(), buffer, cookieValue)
 	if err != nil {
-		/* 		log.Printf("handlers|shortenBatch|%v\n", err)
-		   		var pgxError *pgx.PgError
-		   		if errors.As(err, &pgxError) {
-		   			if pgxError.Code == database.UniqViolation {
-		   				// попытка сократить уже имеющийся в базе URL
-		   				// возвращаем ответ с кодом 409
-		   				rw.WriteHeader(http.StatusConflict)
-		   			} else {
-		   				http.Error(rw, err.Error(), http.StatusBadRequest)
-		   				return
-		   			}
-		   		} else { */
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
-		//}
 	} else {
 		// возвращаем ответ с кодом 201
 		rw.WriteHeader(http.StatusCreated)
@@ -150,7 +137,8 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	log.Printf("short url %s\n", shortURL)
 
 	// получаем длинный url
-	longURL, err := s.service.Storage.GetLongURL(req.Context(), shortURL)
+	lToken := s.service.GetLongToken(shortURL)
+	longURL, err := s.service.Storage.GetLongURL(req.Context(), lToken)
 	if err != nil {
 		log.Printf("handlers|getFullURL|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -266,7 +254,10 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Printf("куки value %s\n", user.Value)
-	links := s.service.Storage.GetAllURLS(user.Value, req.Context())
+	links, err := s.service.Storage.GetAllURLS(user.Value, req.Context())
+	if err != nil {
+		log.Printf("database|GetAllURLs|%v\n", err)
+	}
 
 	if len(links) == 0 {
 		log.Printf("Не нашли сокращенных пользователем URL")

@@ -49,15 +49,14 @@ func gzipHandle(next http.Handler) http.Handler {
 
 func AddCookie(r *http.Request) error {
 	log.Println("Не нашли куки User")
-	Usercookie := http.Cookie{}
-	Usercookie, err := utils.WriteCookies()
+	гsercookie, err := utils.WriteCookies()
 	if err != nil {
 		log.Printf("handlers_base|userAuth|%v\n", err)
 		return err
 	}
 	// выдать пользователю симметрично подписанную куку
-	log.Printf("куки %s\n", &Usercookie)
-	r.AddCookie(&Usercookie)
+	log.Printf("куки %s\n", &гsercookie)
+	r.AddCookie(&гsercookie)
 	return nil
 }
 

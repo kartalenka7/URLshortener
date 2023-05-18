@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"log"
-	urlNet "net/url"
 
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
@@ -58,14 +57,7 @@ func (s MemoryStorage) AddLink(ctx context.Context, longURL string, user string)
 func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 	var err error
 
-	longToken := s.config.BaseURL + sToken
-	_, urlParseErr := urlNet.Parse(longToken)
-	if urlParseErr != nil {
-		longToken = s.config.BaseURL + "/" + sToken
-	}
-	log.Printf("longToken %s", longToken)
-
-	longURL, ok := s.linksMap[longToken]
+	longURL, ok := s.linksMap[sToken]
 	if !ok {
 		return "", errors.New("link is not found")
 	}
@@ -88,7 +80,7 @@ func (s MemoryStorage) Close() error {
 	return errors.New("база данных не активна")
 }
 
-func (s MemoryStorage) GetAllURLS(cookie string, ctx context.Context) map[string]string {
+func (s MemoryStorage) GetAllURLS(cookie string, ctx context.Context) (map[string]string, error) {
 	userLinks := make(map[string]string)
 	for short, user := range s.cookiesMap {
 		if user != cookie {
@@ -96,7 +88,7 @@ func (s MemoryStorage) GetAllURLS(cookie string, ctx context.Context) map[string
 		}
 		userLinks[short] = s.linksMap[short]
 	}
-	return userLinks
+	return userLinks, nil
 }
 
 func (s MemoryStorage) ReadFromFile() {
