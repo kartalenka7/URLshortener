@@ -13,6 +13,7 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 
+	"example.com/shortener/internal/app/models"
 	database "example.com/shortener/internal/app/storage/database"
 )
 
@@ -51,7 +52,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	http.SetCookie(rw, cookie)
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, errToken = s.service.Storage.AddLink(url, cookieValue, req.Context())
+	gToken, errToken = s.service.Storage.AddLink(req.Context(), url, cookieValue)
 
 	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
@@ -90,7 +91,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	defer req.Body.Close()
 
 	//десериализация в слайс
-	buffer := make([]database.BatchReq, 0, 100)
+	buffer := make([]models.BatchReq, 0, 100)
 
 	if err := decoder.Decode(&buffer); err != nil {
 		log.Printf("handlers|shortenBatch|%v\n", err)
@@ -203,8 +204,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 
-	//gToken, errToken = s.storage.AddLink(requestJSON.LongURL, cookieValue)
-	gToken, errToken = s.service.Storage.AddLink(requestJSON.LongURL, cookieValue, req.Context())
+	gToken, errToken = s.service.Storage.AddLink(req.Context(), requestJSON.LongURL, cookieValue)
 	var pgxError *pgconn.PgError
 	if errToken != nil {
 		if errors.As(errToken, &pgxError) {
@@ -226,9 +226,6 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		// возвращаем ответ с кодом 201
 		rw.WriteHeader(http.StatusCreated)
 	}
-
-	// записываем ссылки из мапы в файл
-	//s.storage.WriteInFile()
 
 	// формируем json объект ответа
 	response := Response{

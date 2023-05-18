@@ -7,7 +7,7 @@ import (
 	"log"
 	urlNet "net/url"
 
-	database "example.com/shortener/internal/app/storage/database"
+	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 )
@@ -37,7 +37,7 @@ func New(config config.Config) *MemoryStorage {
 	return memStore
 }
 
-func (s MemoryStorage) AddLink(longURL string, user string, ctx context.Context) (string, error) {
+func (s MemoryStorage) AddLink(ctx context.Context, longURL string, user string) (string, error) {
 	var err error
 
 	sToken := utils.GenRandToken(s.config.BaseURL)
@@ -80,7 +80,7 @@ func (s MemoryStorage) Ping(ctx context.Context) error {
 	return errors.New("база данных не активна")
 }
 
-func (s MemoryStorage) ShortenBatch(ctx context.Context, batchReq []database.BatchReq, cookie string) ([]database.BatchResp, error) {
+func (s MemoryStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 	return nil, errors.New("база данных не активна")
 }
 

@@ -4,11 +4,11 @@ import (
 	"log"
 	"net/http"
 
-	handlers "example.com/shortener/internal/app/handlers"
-	database "example.com/shortener/internal/app/storage/database"
-	memory "example.com/shortener/internal/app/storage/memory"
-	service "example.com/shortener/internal/app/storage/service"
-	config "example.com/shortener/internal/config"
+	"example.com/shortener/internal/app/handlers"
+	"example.com/shortener/internal/app/service"
+	"example.com/shortener/internal/app/storage/database"
+	"example.com/shortener/internal/app/storage/memory"
+	"example.com/shortener/internal/config"
 )
 
 var (
@@ -25,7 +25,6 @@ func main() {
 	}
 
 	// создаем объект хранилища
-	//storage := storage.NewStorage(cfg)
 	if cfg.Database != "" {
 		storer, err = database.New(cfg) // бд хранилище
 		if err != nil {

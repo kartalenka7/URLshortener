@@ -53,8 +53,9 @@ func generateUserToken(len int) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
+	// кодируем массив, чтобы использовать его для куки
 	UserToken := hex.EncodeToString(b)
+
 	log.Printf("UserToken %s\n", UserToken)
 	return UserToken, nil
 }

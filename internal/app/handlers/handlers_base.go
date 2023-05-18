@@ -3,7 +3,7 @@ package handlers
 import (
 	"log"
 
-	service "example.com/shortener/internal/app/storage/service"
+	service "example.com/shortener/internal/app/service"
 	"github.com/go-chi/chi/v5"
 )
 

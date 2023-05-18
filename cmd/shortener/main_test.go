@@ -19,10 +19,10 @@ import (
 
 	"net/http/cookiejar"
 
-	handlers "example.com/shortener/internal/app/handlers"
-	database "example.com/shortener/internal/app/storage/database"
+	"example.com/shortener/internal/app/handlers"
+	"example.com/shortener/internal/app/service"
+	"example.com/shortener/internal/app/storage/database"
 	memory "example.com/shortener/internal/app/storage/memory"
-	service "example.com/shortener/internal/app/storage/service"
 	"example.com/shortener/internal/config"
 
 	"net/url"
@@ -159,7 +159,7 @@ func TestGET(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := service.Storage.AddLink(tt.longURL, "", ctx)
+			gToken, err := service.Storage.AddLink(ctx, tt.longURL, "")
 			sToken := strings.Replace(gToken, cfg.BaseURL, "", 1)
 			assert.NoError(t, err)
 

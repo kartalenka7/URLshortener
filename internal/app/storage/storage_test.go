@@ -5,8 +5,8 @@ import (
 	"testing"
 	"time"
 
+	service "example.com/shortener/internal/app/service"
 	memory "example.com/shortener/internal/app/storage/memory"
-	service "example.com/shortener/internal/app/storage/service"
 	config "example.com/shortener/internal/config"
 	"github.com/stretchr/testify/assert"
 )
@@ -46,7 +46,7 @@ func TestStorage(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Добавляем ссылку в хранилище
-			gToken, err := s.Storage.AddLink(tt.longURL, "", ctx)
+			gToken, err := s.Storage.AddLink(ctx, tt.longURL, "")
 			if err != nil {
 				t.Errorf("StorageLinks.GetLongURL() error = %v", err)
 				return
