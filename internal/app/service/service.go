@@ -14,7 +14,7 @@ type Storer interface {
 	Ping(ctx context.Context) error
 	GetAllURLS(cookie string, ctx context.Context) map[string]string
 	ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error)
-	Close()
+	Close() error
 
 	GetStorageLen() int
 }
