@@ -84,8 +84,8 @@ func (s MemoryStorage) ShortenBatch(ctx context.Context, batchReq []models.Batch
 	return nil, errors.New("база данных не активна")
 }
 
-func (s MemoryStorage) Close() {
-
+func (s MemoryStorage) Close() error {
+	return errors.New("база данных не активна")
 }
 
 func (s MemoryStorage) GetAllURLS(cookie string, ctx context.Context) map[string]string {

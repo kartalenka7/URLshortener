@@ -15,12 +15,8 @@ import (
 	"example.com/shortener/internal/app/models"
 )
 
-type DBStorage struct {
-	config config.Config
-	db     DB
-}
-
-type DB struct {
+type dbStorage struct {
+	config  config.Config
 	pgxConn *pgx.Conn
 }
 
@@ -38,20 +34,20 @@ var (
 	selectLongURL  = `SELECT long_url FROM storage WHERE short_url = $1`
 )
 
-func New(config config.Config) (*DBStorage, error) {
-	db, err := InitTable(config.Database)
+func New(config config.Config) (*dbStorage, error) {
+	pgxConn, err := InitTable(config.Database)
 	if err != nil {
 		log.Println("Не учитываем таблицу бд")
 		return nil, err
 	}
-	storage := DBStorage{
-		config: config,
-		db:     db,
+	storage := dbStorage{
+		config:  config,
+		pgxConn: pgxConn,
 	}
 	return &storage, nil
 }
 
-func (s DBStorage) AddLink(ctx context.Context, longURL string, user string) (string, error) {
+func (s dbStorage) AddLink(ctx context.Context, longURL string, user string) (string, error) {
 
 	sToken := utils.GenRandToken(s.config.BaseURL)
 	log.Printf("Записываем в бд %s %s\n", sToken, longURL)
@@ -64,7 +60,7 @@ func (s DBStorage) AddLink(ctx context.Context, longURL string, user string) (st
 	return sToken, err
 }
 
-func (s DBStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
+func (s dbStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 
 	longToken := s.config.BaseURL + sToken
 	_, urlParseErr := urlNet.Parse(longToken)
@@ -81,11 +77,11 @@ func (s DBStorage) GetLongURL(ctx context.Context, sToken string) (string, error
 	return longURL, nil
 }
 
-func (s DBStorage) GetStorageLen() int {
+func (s dbStorage) GetStorageLen() int {
 	panic("error")
 }
 
-func (s DBStorage) Ping(ctx context.Context) error {
+func (s dbStorage) Ping(ctx context.Context) error {
 	pgxConn, err := pgx.Connect(ctx, s.config.Database)
 	if err != nil {
 		log.Printf("database|Ping|%v\n", err)
@@ -96,11 +92,11 @@ func (s DBStorage) Ping(ctx context.Context) error {
 	return pgxConn.Ping(ctx)
 }
 
-func (s DBStorage) GetAllURLS(cookie string, ctx context.Context) map[string]string {
+func (s dbStorage) GetAllURLS(cookie string, ctx context.Context) map[string]string {
 	var link models.LinksData
 	userLinks := make(map[string]string)
 
-	rows, err := s.db.pgxConn.Query(ctx, selectByUser, cookie)
+	rows, err := s.pgxConn.Query(ctx, selectByUser, cookie)
 	if err != nil {
 		log.Printf("database|GetAllURLs|%v\n", err)
 		return nil
@@ -122,7 +118,7 @@ func (s DBStorage) GetAllURLS(cookie string, ctx context.Context) map[string]str
 	return userLinks
 }
 
-func InitTable(connString string) (DB, error) {
+func InitTable(connString string) (*pgx.Conn, error) {
 	log.Println("Инициализация таблицы")
 
 	// открываем соединение с бд
@@ -136,32 +132,23 @@ func InitTable(connString string) (DB, error) {
 	pgxConn, err := pgx.Connect(ctx, connString)
 	if err != nil {
 		log.Printf("database|Init table|%v\n", err)
-		return DB{}, err
+		return nil, err
 	}
 
 	if _, err = pgxConn.Exec(ctx, createSQL); err != nil {
 		log.Printf("database|Ошибка при создании таблицы|%v\n", err)
-		return DB{}, err
+		return nil, err
 	}
 
-	dbStruct := DB{
-		pgxConn: pgxConn,
-	}
-	return dbStruct, nil
+	return pgxConn, nil
 }
 
-func (db DB) Close() {
-	defer func() {
-		db.pgxConn.Close(context.Background())
-	}()
-}
+func (s dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
 
-func (s DBStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
-
-	res, err := s.db.pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
+	res, err := s.pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
 	if err != nil {
 		log.Printf("database|Insert line|%v\n", err)
-		resSelect, errSelect := s.db.pgxConn.Query(ctx, selectShortURL, longURL)
+		resSelect, errSelect := s.pgxConn.Query(ctx, selectShortURL, longURL)
 		if errSelect != nil {
 			return "", errSelect
 		}
@@ -196,7 +183,7 @@ func (s DBStorage) InsertLine(ctx context.Context, shortURL string, longURL stri
 	return "", nil
 }
 
-func (s DBStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
+func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 
 	response := make([]models.BatchResp, 0, 100)
 	var errStmt error
@@ -206,7 +193,7 @@ func (s DBStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	for _, batchValue := range batchReq {
 
 		// проверяем, что в базе еще нет такого url
-		_, err := findErrorURL(ctx, s.db, batchValue.URL)
+		_, err := findErrorURL(ctx, s, batchValue.URL)
 		if err != nil {
 			log.Printf("database|Find error URL|%v\n", errStmt)
 			return nil, err
@@ -223,7 +210,7 @@ func (s DBStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 		})
 	}
 
-	br := s.db.pgxConn.SendBatch(ctx, batch)
+	br := s.pgxConn.SendBatch(ctx, batch)
 	for range batchReq {
 		_, err := br.Exec()
 		if err != nil {
@@ -240,7 +227,7 @@ func (s DBStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	return response, nil
 }
 
-func findErrorURL(ctx context.Context, db DB, URL string) (string, error) {
+func findErrorURL(ctx context.Context, db dbStorage, URL string) (string, error) {
 	var link models.LinksData
 	var sToken string
 
@@ -265,16 +252,16 @@ func findErrorURL(ctx context.Context, db DB, URL string) (string, error) {
 	return sToken, nil
 }
 
-func (s DBStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
+func (s dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
 	log.Println("Ищем длинный URL в бд")
 	var longURL string
-	err := s.db.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL)
+	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL)
 	if err != nil {
 		return "", err
 	}
 	return longURL, nil
 }
 
-func (s DBStorage) Close() {
-	s.db.Close()
+func (s dbStorage) Close() error {
+	return s.pgxConn.Close(context.Background())
 }
