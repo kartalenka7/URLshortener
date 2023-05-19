@@ -46,9 +46,8 @@ func New(config config.Config) (*dbStorage, error) {
 	return &storage, nil
 }
 
-func (s dbStorage) AddLink(ctx context.Context, longURL string, user string) (string, error) {
+func (s dbStorage) AddLink(ctx context.Context, sToken, longURL string, user string) (string, error) {
 
-	sToken := utils.GenRandToken(s.config.BaseURL)
 	log.Printf("Записываем в бд %s %s\n", sToken, longURL)
 	// используем контекст запроса
 	shortURL, err := s.InsertLine(ctx, sToken, longURL, user)
@@ -84,7 +83,7 @@ func (s dbStorage) Ping(ctx context.Context) error {
 	return pgxConn.Ping(ctx)
 }
 
-func (s dbStorage) GetAllURLS(cookie string, ctx context.Context) (map[string]string, error) {
+func (s dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	var link models.LinksData
 	userLinks := make(map[string]string)
 

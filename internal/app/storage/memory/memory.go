@@ -8,7 +8,6 @@ import (
 
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
-	"example.com/shortener/internal/config/utils"
 )
 
 // Структура для записи в файл
@@ -36,10 +35,8 @@ func New(config config.Config) *MemoryStorage {
 	return memStore
 }
 
-func (s MemoryStorage) AddLink(ctx context.Context, longURL string, user string) (string, error) {
+func (s MemoryStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 	var err error
-
-	sToken := utils.GenRandToken(s.config.BaseURL)
 
 	_, ok := s.linksMap[sToken]
 	if ok {
@@ -82,7 +79,7 @@ func (s MemoryStorage) Close() error {
 	return errors.New("база данных не активна")
 }
 
-func (s MemoryStorage) GetAllURLS(cookie string, ctx context.Context) (map[string]string, error) {
+func (s MemoryStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	userLinks := make(map[string]string)
 	for short, user := range s.cookiesMap {
 		if user != cookie {

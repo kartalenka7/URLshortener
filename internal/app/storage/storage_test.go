@@ -7,7 +7,8 @@ import (
 
 	service "example.com/shortener/internal/app/service"
 	memory "example.com/shortener/internal/app/storage/memory"
-	config "example.com/shortener/internal/config"
+	"example.com/shortener/internal/config"
+	"example.com/shortener/internal/config/utils"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -46,7 +47,8 @@ func TestStorage(t *testing.T) {
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Добавляем ссылку в хранилище
-			gToken, err := s.Storage.AddLink(ctx, tt.longURL, "")
+			sToken := utils.GenRandToken("http://localhost:8080/")
+			gToken, err := s.AddLink(ctx, sToken, tt.longURL, "")
 			if err != nil {
 				t.Errorf("StorageLinks.GetLongURL() error = %v", err)
 				return
@@ -58,11 +60,11 @@ func TestStorage(t *testing.T) {
 
 			// Проверяем, что добавлена одна запись (для варианта с сохранением в память)
 			if tt.file == "" {
-				assert.Equal(t, s.Storage.GetStorageLen(), 1)
+				assert.Equal(t, s.GetStorageLen(), 1)
 			}
 
 			// Получаем ссылку
-			got, err := s.Storage.GetLongURL(ctx, gToken)
+			got, err := s.GetLongURL(ctx, gToken)
 			assert.Equal(t, got, tt.longURL)
 			assert.NoError(t, err)
 		})

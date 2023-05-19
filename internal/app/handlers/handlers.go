@@ -52,7 +52,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	http.SetCookie(rw, cookie)
 
 	// добавляем длинный url в хранилище, генерируем токен
-	gToken, errToken = s.service.Storage.AddLink(req.Context(), url, cookieValue)
+	gToken, errToken = s.service.AddLink(req.Context(), "", url, cookieValue)
 
 	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
@@ -106,7 +106,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	fmt.Printf("Возвращены куки %s\n", cookie)
 	http.SetCookie(rw, cookie)
 
-	response, err := s.service.Storage.ShortenBatch(req.Context(), buffer, cookieValue)
+	response, err := s.service.ShortenBatch(req.Context(), buffer, cookieValue)
 	if err != nil {
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
@@ -135,7 +135,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 
 	// получаем длинный url
 	lToken := s.service.GetLongToken(shortURL)
-	longURL, err := s.service.Storage.GetLongURL(req.Context(), lToken)
+	longURL, err := s.service.GetLongURL(req.Context(), lToken)
 	if err != nil {
 		log.Printf("handlers|getFullURL|%v\n", err)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
@@ -189,7 +189,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
 
-	gToken, errToken = s.service.Storage.AddLink(req.Context(), requestJSON.LongURL, cookieValue)
+	gToken, errToken = s.service.AddLink(req.Context(), "", requestJSON.LongURL, cookieValue)
 	var pgxError *pgconn.PgError
 	if errToken != nil {
 		if errors.As(errToken, &pgxError) {
@@ -251,7 +251,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 	log.Printf("куки value %s\n", user.Value)
-	links, err := s.service.Storage.GetAllURLS(user.Value, req.Context())
+	links, err := s.service.GetAllURLS(req.Context(), user.Value)
 	if err != nil {
 		log.Printf("database|GetAllURLs|%v\n", err)
 	}
@@ -287,7 +287,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 
 func (s *Server) PingConnection(rw http.ResponseWriter, req *http.Request) {
 	log.Println("Ping")
-	if s.service.Storage.Ping(req.Context()) != nil {
+	if s.service.Ping(req.Context()) != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 	} else {
 		rw.WriteHeader(http.StatusOK)

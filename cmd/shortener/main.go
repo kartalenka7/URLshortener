@@ -32,8 +32,8 @@ func main() {
 	log.Println(cfg.Server)
 	log.Fatal(http.ListenAndServe(cfg.Server, router))
 
-	err = service.Storage.Close()
+	err = service.Close()
 	if err != nil {
-		log.Printf("Ошибка при завершении работы с бд: %v\n", err)
+		log.Printf("Ошибка при завершении работы : %v\n", err)
 	}
 }
