@@ -72,9 +72,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		return
 	}
 
-	// записываем ссылки из мапы в файл
-	//s.storage.WriteInFile()
-
 	// возвращаем ответ с кодом 201
 	rw.WriteHeader(http.StatusCreated)
 

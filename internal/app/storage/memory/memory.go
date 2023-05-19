@@ -50,6 +50,8 @@ func (s MemoryStorage) AddLink(ctx context.Context, longURL string, user string)
 	s.linksMap[sToken] = longURL
 	s.cookiesMap[sToken] = user
 
+	log.Printf("Мапа со ссылками: %s\n", s.linksMap)
+
 	s.WriteInFile()
 	return sToken, err
 }
@@ -132,7 +134,6 @@ func (s MemoryStorage) WriteInFile() {
 			LongURL:  long,
 			User:     s.cookiesMap[short],
 		}
-		log.Println(links)
 		if err := producer.WriteLinks(&links); err != nil {
 			log.Println(err.Error())
 			log.Fatal(err)
