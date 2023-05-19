@@ -5,7 +5,6 @@ import (
 	"log"
 
 	urlNet "net/url"
-	"path"
 
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
@@ -36,7 +35,7 @@ func (s Service) GetLongToken(sToken string) string {
 	longToken := s.Config.BaseURL + sToken
 	_, urlParseErr := urlNet.Parse(longToken)
 	if urlParseErr != nil {
-		longToken = path.Join(s.Config.BaseURL, sToken)
+		longToken = s.Config.BaseURL + "/" + sToken
 	}
 	log.Printf("longToken %s", longToken)
 	return longToken
