@@ -21,7 +21,7 @@ func New(cfg config.Config) service.Storer {
 	defer cancel()
 	// создаем объект хранилища
 	if cfg.Database != "" {
-		storer, err = database.New(cfg) // бд хранилище
+		storer, err = database.New(ctx, cfg) // бд хранилище
 		if err != nil {
 			storer = memory.New(cfg)
 		}
