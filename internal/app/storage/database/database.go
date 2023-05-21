@@ -46,7 +46,7 @@ func New(config config.Config) (*dbStorage, error) {
 	return &storage, nil
 }
 
-func (s dbStorage) AddLink(ctx context.Context, sToken, longURL string, user string) (string, error) {
+func (s dbStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 
 	log.Printf("Записываем в бд %s %s\n", sToken, longURL)
 	// используем контекст запроса
@@ -153,7 +153,11 @@ func (s dbStorage) InsertLine(ctx context.Context, shortURL string, longURL stri
 			var pgxError *pgconn.PgError
 			if errors.As(err, &pgxError) {
 				log.Println(pgxError.Code)
-				return link.ShortURL, err
+				if pgxError.Code == UniqViolation {
+					return link.ShortURL, models.ErrorAlreadyExist
+				} else {
+					return link.ShortURL, pgxError
+				}
 			}
 		}
 

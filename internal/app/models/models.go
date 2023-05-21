@@ -1,5 +1,9 @@
 package models
 
+import (
+	"errors"
+)
+
 type BatchReq struct {
 	CorrID string `json:"correlation_id"`
 	URL    string `json:"original_url"`
@@ -15,3 +19,5 @@ type LinksData struct {
 	LongURL  string `json:"long"`
 	User     string `json:"user"`
 }
+
+var ErrorAlreadyExist = errors.New("already exist")

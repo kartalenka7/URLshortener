@@ -11,10 +11,8 @@ import (
 	"strings"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/jackc/pgx/v5/pgconn"
 
 	"example.com/shortener/internal/app/models"
-	database "example.com/shortener/internal/app/storage/database"
 )
 
 var (
@@ -56,17 +54,14 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 
 	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
-		var pgxError *pgconn.PgError
-		if errors.As(errToken, &pgxError) {
-			if pgxError.Code == database.UniqViolation {
-				// попытка сократить уже имеющийся в базе URL
-				// возвращаем ответ с кодом 409
-				rw.WriteHeader(http.StatusConflict)
-				// пишем в тело ответа сокращенный URL
-				log.Printf("Короткий URL из бд %s", gToken)
-				fmt.Fprint(rw, gToken)
-				return
-			}
+		if errors.Is(errToken, models.ErrorAlreadyExist) {
+			// попытка сократить уже имеющийся в базе URL
+			// возвращаем ответ с кодом 409
+			rw.WriteHeader(http.StatusConflict)
+			// пишем в тело ответа сокращенный URL
+			log.Printf("Короткий URL из бд %s", gToken)
+			fmt.Fprint(rw, gToken)
+			return
 		}
 		http.Error(rw, errToken.Error(), http.StatusInternalServerError)
 		return
@@ -190,18 +185,11 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	rw.Header().Set("Content-Type", contentTypeJSON)
 
 	gToken, errToken = s.service.AddLink(req.Context(), "", requestJSON.LongURL, cookieValue)
-	var pgxError *pgconn.PgError
 	if errToken != nil {
-		if errors.As(errToken, &pgxError) {
-			if pgxError.Code == database.UniqViolation {
-				// попытка сократить уже имеющийся в базе URL
-				// возвращаем ответ с кодом 409
-				rw.WriteHeader(http.StatusConflict)
-			} else {
-				log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
-				http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-				return
-			}
+		if errors.Is(errToken, models.ErrorAlreadyExist) {
+			// попытка сократить уже имеющийся в базе URL
+			// возвращаем ответ с кодом 409
+			rw.WriteHeader(http.StatusConflict)
 		} else {
 			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
 			http.Error(rw, errToken.Error(), http.StatusInternalServerError)

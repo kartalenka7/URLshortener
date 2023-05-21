@@ -43,8 +43,8 @@ func (s Service) GetLongToken(sToken string) string {
 }
 
 func (s Service) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
-	sToken = utils.GenRandToken(s.Config.BaseURL)
-	return s.storage.AddLink(ctx, sToken, longURL, user)
+	token := utils.GenRandToken(s.Config.BaseURL)
+	return s.storage.AddLink(ctx, token, longURL, user)
 }
 
 func (s Service) GetLongURL(ctx context.Context, sToken string) (string, error) {
