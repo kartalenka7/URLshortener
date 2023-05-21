@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"log"
-	"time"
 
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
@@ -31,8 +30,8 @@ var (
 	selectLongURL  = `SELECT long_url FROM urlsBase WHERE short_url = $1`
 )
 
-func New(config config.Config) (*dbStorage, error) {
-	pgxConn, err := InitTable(config.Database)
+func New(ctx context.Context, config config.Config) (*dbStorage, error) {
+	pgxConn, err := InitTable(ctx, config.Database)
 	if err != nil {
 		log.Println("Не учитываем таблицу бд")
 		return nil, err
@@ -104,17 +103,10 @@ func (s dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]st
 	return userLinks, nil
 }
 
-func InitTable(connString string) (*pgx.Conn, error) {
+func InitTable(ctx context.Context, connString string) (*pgx.Conn, error) {
 	log.Println("Инициализация таблицы")
 
 	// открываем соединение с бд
-
-	// конструируем контекст с 5-секундным тайм-аутом
-	// после 5 секунд затянувшаяся операция с БД будет прервана
-	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-	// не забываем освободить ресурс
-	defer cancel()
-
 	pgxConn, err := pgx.Connect(ctx, connString)
 	if err != nil {
 		log.Printf("database|Init table|%v\n", err)

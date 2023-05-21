@@ -73,8 +73,9 @@ func TestPOST(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			//s := storage.NewStorage(cfg)
-			storer, err = database.New(cfg)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			storer, err = database.New(ctx, cfg)
 			if err != nil {
 				storer = memory.New(cfg)
 			}
@@ -151,14 +152,14 @@ func TestGET(t *testing.T) {
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
-			storer, err = database.New(cfg)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			storer, err = database.New(ctx, cfg)
 			if err != nil {
 				log.Println("Используем хранилище in-memory")
 				storer = memory.New(cfg)
 			}
 			service := service.New(cfg, storer)
-			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-			defer cancel()
 			// Добавить в хранилище URL, получить сгененированный токен
 			token := utils.GenRandToken("http://localhost:8080/")
 			gToken, err := service.AddLink(ctx, token, tt.longURL, "")
@@ -226,7 +227,9 @@ func TestJSON(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			storer, err = database.New(cfg)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			storer, err = database.New(ctx, cfg)
 			if err != nil {
 				log.Println("Используем хранилище in-memory")
 				storer = memory.New(cfg)
