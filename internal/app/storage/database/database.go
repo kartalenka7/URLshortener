@@ -6,20 +6,18 @@ import (
 	"log"
 	"time"
 
+	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
+	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
-
-	"example.com/shortener/internal/app/models"
 )
 
 type dbStorage struct {
 	config  config.Config
 	pgxConn *pgx.Conn
 }
-
-const UniqViolation = "23505"
 
 var (
 	createSQL = `CREATE TABLE IF NOT EXISTS urlsBase(
@@ -132,47 +130,49 @@ func InitTable(connString string) (*pgx.Conn, error) {
 }
 
 func (s dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
+	var pgxError *pgconn.PgError
 
 	res, err := s.pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
-	if err != nil {
-		log.Printf("database|Insert line|%v\n", err)
-		resSelect, errSelect := s.pgxConn.Query(ctx, selectShortURL, longURL)
+	if err == nil {
+		rows := res.RowsAffected()
+		if rows > 0 {
+			log.Printf("Вставлено строк %d\n", rows)
+		}
+		return "", nil
+	}
+
+	log.Printf("database|Insert line|%v\n", err)
+	if !errors.As(err, &pgxError) {
+		return "", err
+	}
+	resSelect, errSelect := s.pgxConn.Query(ctx, selectShortURL, longURL)
+	if errSelect != nil {
+		return "", errSelect
+	}
+	defer resSelect.Close()
+
+	var link models.LinksData
+	for resSelect.Next() {
+		errSelect := resSelect.Scan(&link.ShortURL)
 		if errSelect != nil {
 			return "", errSelect
 		}
-		defer resSelect.Close()
+		log.Printf("Найденный короткий URL %s\n", link.ShortURL)
 
-		var link models.LinksData
-		for resSelect.Next() {
-			errSelect := resSelect.Scan(&link.ShortURL)
-			if errSelect != nil {
-				return "", errSelect
-			}
-			log.Printf("Найденный короткий URL %s\n", link.ShortURL)
-
-			var pgxError *pgconn.PgError
-			if errors.As(err, &pgxError) {
-				log.Println(pgxError.Code)
-				if pgxError.Code == UniqViolation {
-					return link.ShortURL, models.ErrorAlreadyExist
-				} else {
-					return link.ShortURL, pgxError
-				}
-			}
+		log.Println(pgxError.Code)
+		if pgxError.Code == pgerrcode.UniqueViolation {
+			return link.ShortURL, models.ErrorAlreadyExist
+		} else {
+			return link.ShortURL, pgxError
 		}
 
-		if resSelect.Err() != nil {
-			return "", resSelect.Err()
-		}
-
-		return "", err
 	}
 
-	rows := res.RowsAffected()
-	if rows > 0 {
-		log.Printf("Вставлено строк %d\n", rows)
+	if resSelect.Err() != nil {
+		return "", resSelect.Err()
 	}
-	return "", nil
+
+	return "", err
 }
 
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {

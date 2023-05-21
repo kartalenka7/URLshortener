@@ -1,4 +1,4 @@
-package main
+package test
 
 import (
 	"bytes"
@@ -151,9 +151,9 @@ func TestGET(t *testing.T) {
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
-			//s := storage.NewStorage(cfg)
 			storer, err = database.New(cfg)
 			if err != nil {
+				log.Println("Используем хранилище in-memory")
 				storer = memory.New(cfg)
 			}
 			service := service.New(cfg, storer)
@@ -190,7 +190,6 @@ func TestGET(t *testing.T) {
 			for _, cookie := range jar.Cookies(req.URL) {
 				log.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
 			}
-			//statusCode, _, err := testRequest(t, ts, tt.method, request)
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			require.Error(t, err)
 			log.Println(err.Error())
@@ -227,9 +226,9 @@ func TestJSON(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			//s := storage.NewStorage(cfg)
 			storer, err = database.New(cfg)
 			if err != nil {
+				log.Println("Используем хранилище in-memory")
 				storer = memory.New(cfg)
 			}
 			service := service.New(cfg, storer)
