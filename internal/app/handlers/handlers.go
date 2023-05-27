@@ -190,15 +190,16 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 			// попытка сократить уже имеющийся в базе URL
 			// возвращаем ответ с кодом 409
 			rw.WriteHeader(http.StatusConflict)
+		} else {
+			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
 			return
 		}
-		log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
-		http.Error(rw, errToken.Error(), http.StatusInternalServerError)
-		return
 
+	} else {
+		// возвращаем ответ с кодом 201
+		rw.WriteHeader(http.StatusCreated)
 	}
-	// возвращаем ответ с кодом 201
-	rw.WriteHeader(http.StatusCreated)
 
 	// формируем json объект ответа
 	response := Response{
