@@ -43,7 +43,7 @@ func New(ctx context.Context, config config.Config) (*dbStorage, error) {
 	return &storage, nil
 }
 
-func (s dbStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
+func (s *dbStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 
 	log.Printf("Записываем в бд %s %s\n", sToken, longURL)
 	// используем контекст запроса
@@ -60,24 +60,17 @@ func (s dbStorage) GetLongURL(ctx context.Context, sToken string) (string, error
 	longURL, err := s.SelectLink(ctx, sToken)
 	if err != nil {
 		log.Printf("storage|getLongURL|%v\n", err)
-		return "", errors.New("link is not found")
+		return "", err
 	}
 	return longURL, nil
 }
 
 func (s dbStorage) GetStorageLen() int {
-	panic("error")
+	return 0
 }
 
 func (s dbStorage) Ping(ctx context.Context) error {
-	pgxConn, err := pgx.Connect(ctx, s.config.Database)
-	if err != nil {
-		log.Printf("database|Ping|%v\n", err)
-		return err
-	}
-	defer pgxConn.Close(ctx)
-
-	return pgxConn.Ping(ctx)
+	return s.pgxConn.Ping(ctx)
 }
 
 func (s dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
@@ -239,7 +232,7 @@ func (s dbStorage) SelectLink(ctx context.Context, shortURL string) (string, err
 	var longURL string
 	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL)
 	if err != nil {
-		return "", err
+		return "", models.ErrLinkNotFound
 	}
 	return longURL, nil
 }

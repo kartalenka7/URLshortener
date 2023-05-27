@@ -21,3 +21,4 @@ type LinksData struct {
 }
 
 var ErrorAlreadyExist = errors.New("already exist")
+var ErrLinkNotFound = errors.New("link is not found")
