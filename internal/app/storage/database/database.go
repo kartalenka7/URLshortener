@@ -55,7 +55,7 @@ func (s *dbStorage) AddLink(ctx context.Context, sToken string, longURL string, 
 	return sToken, err
 }
 
-func (s dbStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
+func (s *dbStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 
 	longURL, err := s.SelectLink(ctx, sToken)
 	if err != nil {
@@ -69,11 +69,11 @@ func (s dbStorage) GetStorageLen() int {
 	return 0
 }
 
-func (s dbStorage) Ping(ctx context.Context) error {
+func (s *dbStorage) Ping(ctx context.Context) error {
 	return s.pgxConn.Ping(ctx)
 }
 
-func (s dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
+func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	var link models.LinksData
 	userLinks := make(map[string]string)
 
@@ -114,7 +114,7 @@ func InitTable(ctx context.Context, connString string) (*pgx.Conn, error) {
 	return pgxConn, nil
 }
 
-func (s dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
+func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
 	var pgxError *pgconn.PgError
 
 	res, err := s.pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
@@ -227,7 +227,7 @@ func findErrorURL(ctx context.Context, db dbStorage, URL string) (string, error)
 	return sToken, nil
 }
 
-func (s dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
+func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
 	log.Println("Ищем длинный URL в бд")
 	var longURL string
 	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL)
@@ -237,6 +237,6 @@ func (s dbStorage) SelectLink(ctx context.Context, shortURL string) (string, err
 	return longURL, nil
 }
 
-func (s dbStorage) Close() error {
+func (s *dbStorage) Close() error {
 	return s.pgxConn.Close(context.Background())
 }
