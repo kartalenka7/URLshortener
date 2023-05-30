@@ -1,36 +1,56 @@
-package main
+package test
 
 import (
 	"bytes"
 	"compress/gzip"
+	"context"
 	"encoding/json"
 	"errors"
+	"time"
+
 	"fmt"
 	"io"
 	"log"
 	"net/http"
 	"net/http/httptest"
+
 	"strings"
 	"testing"
 
-	handlers "example.com/shortener/internal/app/handlers"
-	"example.com/shortener/internal/app/storage"
+	"net/http/cookiejar"
+
+	"example.com/shortener/internal/app/handlers"
+	"example.com/shortener/internal/app/service"
+	"example.com/shortener/internal/app/storage/database"
+	memory "example.com/shortener/internal/app/storage/memory"
 	"example.com/shortener/internal/config"
+
+	"net/url"
+
+	"example.com/shortener/internal/config/utils"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"golang.org/x/net/publicsuffix"
 )
 
 var cfg config.Config
+var jar *cookiejar.Jar
 
 func init() {
 	cfg = config.Config{
 		BaseURL: "http://localhost:8080/",
 		Server:  "localhost:8080",
 		File:    "link.log",
+		//Database: "postgres://habruser:habr@localhost:5432/habrdb",
+		Database: "user=habruser password=habr host=localhost port=5432 database=habrdb sslmode=disable",
 	}
+
+	jar, _ = cookiejar.New(&cookiejar.Options{PublicSuffixList: publicsuffix.List})
 }
 
 func TestPOST(t *testing.T) {
+	var storer service.Storer
+	var err error
 
 	type want struct {
 		statusCode int
@@ -53,21 +73,26 @@ func TestPOST(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-			r := handlers.NewRouter(s)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			storer, err = database.New(ctx, cfg)
+			if err != nil {
+				storer = memory.New(cfg)
+			}
+			service := service.New(cfg, storer)
+			r := handlers.NewRouter(service)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
 			var respBody []byte
-			var err error
 
 			var buf bytes.Buffer
 			zw := gzip.NewWriter(&buf)
-			_, _ = zw.Write([]byte("https://www.youtube.com"))
+			_, _ = zw.Write([]byte("https://www.pinterest30.com"))
 			_ = zw.Close()
 
-			/* 	data := url.Values{}
-			data.Set("url", "https://www.youtube.com") */
+			data := url.Values{}
+			data.Set("url", "https://www.pinterest30.com")
 
 			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
 			require.NoError(t, err)
@@ -76,9 +101,16 @@ func TestPOST(t *testing.T) {
 			}
 			req.Header.Add("Content-Encoding", "gzip")
 			req.Header.Add("Accept-Encoding", "gzip")
+
 			client := new(http.Client)
+			client.Jar = jar
 			resp, err := client.Do(req)
 			require.NoError(t, err)
+
+			fmt.Println("After 1st request:")
+			for _, cookie := range jar.Cookies(req.URL) {
+				fmt.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
+			}
 
 			respBody, err = io.ReadAll(resp.Body)
 			defer resp.Body.Close()
@@ -94,6 +126,8 @@ func TestPOST(t *testing.T) {
 }
 
 func TestGET(t *testing.T) {
+	var storer service.Storer
+	var err error
 
 	type want struct {
 		statusCode int
@@ -107,10 +141,10 @@ func TestGET(t *testing.T) {
 	}{
 		{
 			name:    "GET positive test",
-			longURL: "https://www.github.com",
+			longURL: "https://www.pinterest31.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.github.com\": Redirect",
+				err:        "Get \"https://www.pinterest31.com\": Redirect",
 			},
 			method: http.MethodGet,
 		},
@@ -118,13 +152,21 @@ func TestGET(t *testing.T) {
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			storer, err = database.New(ctx, cfg)
+			if err != nil {
+				log.Println("Используем хранилище in-memory")
+				storer = memory.New(cfg)
+			}
+			service := service.New(cfg, storer)
 			// Добавить в хранилище URL, получить сгененированный токен
-			gToken, err := s.AddLink(tt.longURL)
+			token := utils.GenRandToken("http://localhost:8080/")
+			gToken, err := service.AddLink(ctx, token, tt.longURL, "")
 			sToken := strings.Replace(gToken, cfg.BaseURL, "", 1)
 			assert.NoError(t, err)
 
-			r := handlers.NewRouter(s)
+			r := handlers.NewRouter(service)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -138,12 +180,17 @@ func TestGET(t *testing.T) {
 			}
 			req.Header.Add("Accept-Encoding", "no")
 			client := new(http.Client)
+			client.Jar = jar
 			client.CheckRedirect = func(req *http.Request, via []*http.Request) error {
 				return errors.New("Redirect")
 			}
 			resp, err := client.Do(req)
 			resp.Body.Close()
-			//statusCode, _, err := testRequest(t, ts, tt.method, request)
+
+			log.Println("After 2st request:")
+			for _, cookie := range jar.Cookies(req.URL) {
+				log.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
+			}
 			assert.Equal(t, tt.want.statusCode, resp.StatusCode)
 			require.Error(t, err)
 			log.Println(err.Error())
@@ -154,6 +201,8 @@ func TestGET(t *testing.T) {
 }
 
 func TestJSON(t *testing.T) {
+	var storer service.Storer
+	var err error
 
 	type want struct {
 		statusCode  int
@@ -178,8 +227,15 @@ func TestJSON(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
-			s := storage.NewStorage(cfg)
-			r := handlers.NewRouter(s)
+			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+			defer cancel()
+			storer, err = database.New(ctx, cfg)
+			if err != nil {
+				log.Println("Используем хранилище in-memory")
+				storer = memory.New(cfg)
+			}
+			service := service.New(cfg, storer)
+			r := handlers.NewRouter(service)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -198,7 +254,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	bodyStr := struct {
 		LongURL string `json:"url"`
 	}{
-		LongURL: "https://www.youtube.com",
+		LongURL: "https://www.pinterest32.com",
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)

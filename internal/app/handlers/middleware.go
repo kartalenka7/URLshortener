@@ -1,21 +1,22 @@
 package handlers
 
 import (
+	"compress/gzip"
 	"io"
 	"log"
+	"net/http"
 	"strings"
 
-	"compress/gzip"
-	"net/http"
+	"example.com/shortener/internal/config/utils"
 )
 
 func gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		log.Printf("Заголовок до gzipHandle %s", r.Header)
 		if !strings.Contains(r.Header.Get("Content-Encoding"), encodGzip) {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
 			log.Println("no gzip")
+			log.Printf("Заголовок %s\n", r.Header)
 			next.ServeHTTP(w, r)
 			return
 		}
@@ -24,7 +25,7 @@ func gzipHandle(next http.Handler) http.Handler {
 			// Распаковать длинный url из body с помощью gzip
 			gz, err := gzip.NewReader(r.Body)
 			if err != nil {
-				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
+				log.Printf("handlers_base|gzipHandle|%v\n", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				next.ServeHTTP(w, r)
 				return
@@ -33,11 +34,10 @@ func gzipHandle(next http.Handler) http.Handler {
 			// при чтении вернётся распакованный слайс байт
 			b, err := io.ReadAll(gz)
 			if err != nil {
-				log.Printf("handlers_base|gzipHandle|%s\n", err.Error())
+				log.Printf("handlers_base|gzipHandle|%v\n", err)
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			log.Printf("long url after gzip %s\n", string(b))
 			// пишем в тело распакованный url и передаем дальше в хэндлеры
 			r.Body = io.NopCloser(strings.NewReader(string(b)))
 
@@ -47,14 +47,43 @@ func gzipHandle(next http.Handler) http.Handler {
 	})
 }
 
+func AddCookie(r *http.Request) error {
+	log.Println("Не нашли куки User")
+	usercookie, err := utils.WriteCookies()
+	if err != nil {
+		log.Printf("handlers_base|userAuth|%v\n", err)
+		return err
+	}
+	// выдать пользователю симметрично подписанную куку
+	log.Printf("куки %s\n", &usercookie)
+	r.AddCookie(&usercookie)
+	return nil
+}
+
 func userAuth(next http.Handler) http.Handler {
+	log.Println("middleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
 		// получаем куки
-		_, err := r.Cookie("User")
+		cookie, err := r.Cookie("User")
 		if err != nil {
-			var Usercookie *http.Cookie
-			// куки не найдены, выдать пользователю симметрично подписанную куку
-			http.SetCookie(w, Usercookie)
+			if err = AddCookie(r); err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			next.ServeHTTP(w, r)
+			return
 		}
+		log.Printf("Нашли куки %s\n", cookie)
+		err = utils.ReadCookies(*cookie)
+		if err != nil {
+			log.Printf("handlers_base|userAuth|%v\n", err)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		r.AddCookie(cookie)
+
+		// замыкание — используем ServeHTTP следующего хендлера
+		next.ServeHTTP(w, r)
 	})
 }

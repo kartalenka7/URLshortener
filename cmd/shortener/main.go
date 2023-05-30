@@ -4,9 +4,10 @@ import (
 	"log"
 	"net/http"
 
-	handlers "example.com/shortener/internal/app/handlers"
-	storage "example.com/shortener/internal/app/storage"
-	config "example.com/shortener/internal/config"
+	"example.com/shortener/internal/app/handlers"
+	"example.com/shortener/internal/app/service"
+	"example.com/shortener/internal/app/storage"
+	"example.com/shortener/internal/config"
 )
 
 var (
@@ -14,15 +15,25 @@ var (
 )
 
 func main() {
-
+	var storer service.Storer
+	var err error
 	// получаем структуру с конфигурацией приложения
 	cfg, err := config.GetConfig()
 	if err != nil {
 		log.Fatal(err)
 	}
-	storage := storage.NewStorage(cfg)
-	router := handlers.NewRouter(storage)
+
+	// создаем объект хранилища
+	storer = storage.New(cfg)
+	service := service.New(cfg, storer)
+
+	router := handlers.NewRouter(service)
 
 	log.Println(cfg.Server)
 	log.Fatal(http.ListenAndServe(cfg.Server, router))
+
+	err = service.Close()
+	if err != nil {
+		log.Printf("Ошибка при завершении работы : %v\n", err)
+	}
 }
