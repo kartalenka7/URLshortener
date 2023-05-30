@@ -81,6 +81,7 @@ func (s *dbStorage) Ping(ctx context.Context) error {
 	if err == nil {
 		return err
 	}
+	defer pgxConn.Release()
 	return pgxConn.Ping(ctx)
 }
 
@@ -92,6 +93,7 @@ func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]s
 	if err == nil {
 		return nil, err
 	}
+	defer pgxConn.Release()
 
 	rows, err := pgxConn.Query(ctx, selectByUser, cookie)
 	if err != nil {
@@ -128,7 +130,7 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 		log.Printf("database|Init table|%v\n", err)
 		return nil, err
 	}
-	log.Println(pgxConn.Ping(ctx))
+	defer pgxConn.Release()
 
 	if _, err = pgxConn.Exec(ctx, createSQL); err != nil {
 		log.Printf("database|Ошибка при создании таблицы|%v\n", err)
@@ -144,6 +146,7 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 	if err == nil {
 		return "", err
 	}
+	defer pgxConn.Release()
 
 	res, err := pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
 	if err == nil {
@@ -193,6 +196,8 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 	if err == nil {
 		return
 	}
+	defer pgxConn.Release()
+
 	batch := &pgx.Batch{}
 	for _, v := range sTokens {
 		batch.Queue(deleteSQL, v.Token, v.User)
@@ -210,6 +215,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	if err == nil {
 		return nil, err
 	}
+	defer pgxConn.Release()
 
 	response := make([]models.BatchResp, 0, 100)
 	var errStmt error
@@ -259,6 +265,7 @@ func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error
 	if err == nil {
 		return "", err
 	}
+	defer pgxConn.Release()
 
 	rows, err := pgxConn.Query(ctx, selectShortURL, URL)
 	if err != nil {
@@ -289,6 +296,8 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 	if err == nil {
 		return "", err
 	}
+	defer pgxConn.Release()
+
 	err = pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL, &deleted)
 	if err != nil {
 		log.Println(err.Error())
