@@ -45,8 +45,7 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 		cookieValue = cookie.Value
 	}
 
-	var workerChannel chan string
-	workerChannel = make(chan string, len(sTokens))
+	workerChannel := make(chan string, len(sTokens))
 
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
 	go s.service.RecieveTokensFromChannel(req.Context(), workerChannel, cookieValue)

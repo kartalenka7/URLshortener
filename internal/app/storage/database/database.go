@@ -20,17 +20,17 @@ type dbStorage struct {
 }
 
 var (
-	createSQL = `CREATE TABLE IF NOT EXISTS urlsBase(
+	createSQL = `CREATE TABLE IF NOT EXISTS urlsTable(
 					short_url TEXT,
 					long_url TEXT UNIQUE,
 					cookie TEXT, 
 					deleted BOOLEAN
 					);`
-	insertSQL      = `INSERT INTO urlsBase(short_url, long_url, cookie) VALUES ($1, $2, $3)`
-	selectShortURL = `SELECT short_url FROM urlsBase WHERE long_url = $1`
-	selectByUser   = `SELECT short_url, long_url FROM urlsBase WHERE cookie = $1`
-	selectLongURL  = `SELECT long_url, deleted FROM urlsBase WHERE short_url = $1`
-	deleteSQL      = `UPDATE urlsBase SET deleted = 'true' WHERE short_url = $1, cookie = $2`
+	insertSQL      = `INSERT INTO urlsTable(short_url, long_url, cookie) VALUES ($1, $2, $3)`
+	selectShortURL = `SELECT short_url FROM urlsTable WHERE long_url = $1`
+	selectByUser   = `SELECT short_url, long_url FROM urlsTable WHERE cookie = $1`
+	selectLongURL  = `SELECT long_url, deleted FROM urlsTable WHERE short_url = $1`
+	deleteSQL      = `UPDATE urlsTable SET deleted = 'true' WHERE short_url = $1, cookie = $2`
 )
 
 func New(ctx context.Context, config config.Config) (*dbStorage, error) {
