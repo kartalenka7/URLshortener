@@ -137,3 +137,7 @@ func (s MemoryStorage) WriteInFile() {
 		}
 	}
 }
+
+func (s MemoryStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
+
+}

@@ -22,7 +22,35 @@ var (
 	encodGzip       = "gzip"
 )
 
-// Структура для парсинга переменных окружения
+func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
+	var sTokens []string
+
+	// читаем строку в формате [ "a", "b", "c", "d", ...]
+	b, err := io.ReadAll(req.Body)
+	defer req.Body.Close()
+	if err != nil {
+		log.Printf("handlers|shortenURL|%v\n", err)
+		http.Error(rw, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	// конвертируем строку в массив с токенами
+	sTokens = strings.Split(string(b), ",")
+
+	// Запрос успешно принят 202 Accepted
+	rw.WriteHeader(http.StatusAccepted)
+
+	var cookieValue string
+	cookie, err := req.Cookie("User")
+	if err == nil {
+		cookieValue = cookie.Value
+	}
+
+	var workerChannel chan string
+	workerChannel = make(chan string, len(sTokens))
+
+	go s.service.AddDeletedTokens(sTokens, workerChannel)
+	go s.service.RecieveTokensFromChannel(req.Context(), workerChannel, cookieValue)
+}
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
@@ -52,7 +80,6 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	// добавляем длинный url в хранилище, генерируем токен
 	gToken, errToken = s.service.AddLink(req.Context(), "", url, cookieValue)
 
-	//gToken, errToken = s.storage.AddLink(url, cookieValue)
 	if errToken != nil {
 		if errors.Is(errToken, models.ErrorAlreadyExist) {
 			// попытка сократить уже имеющийся в базе URL
@@ -133,6 +160,10 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	longURL, err := s.service.GetLongURL(req.Context(), lToken)
 	if err != nil {
 		log.Printf("handlers|getFullURL|%v\n", err)
+		if errors.Is(err, models.ErrLinkDeleted) {
+			http.Error(rw, err.Error(), http.StatusGone)
+			return
+		}
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}

@@ -16,18 +16,21 @@ import (
 type dbStorage struct {
 	config  config.Config
 	pgxConn *pgx.Conn
+	cookie  string
 }
 
 var (
 	createSQL = `CREATE TABLE IF NOT EXISTS urlsBase(
 					short_url TEXT,
 					long_url TEXT UNIQUE,
-					cookie TEXT 
+					cookie TEXT, 
+					deleted BOOLEAN
 					);`
 	insertSQL      = `INSERT INTO urlsBase(short_url, long_url, cookie) VALUES ($1, $2, $3)`
 	selectShortURL = `SELECT short_url FROM urlsBase WHERE long_url = $1`
 	selectByUser   = `SELECT short_url, long_url FROM urlsBase WHERE cookie = $1`
-	selectLongURL  = `SELECT long_url FROM urlsBase WHERE short_url = $1`
+	selectLongURL  = `SELECT long_url, deleted FROM urlsBase WHERE short_url = $1`
+	deleteSQL      = `UPDATE urlsBase SET deleted = 'true' WHERE short_url = $1, cookie = $2`
 )
 
 func New(ctx context.Context, config config.Config) (*dbStorage, error) {
@@ -59,7 +62,6 @@ func (s *dbStorage) GetLongURL(ctx context.Context, sToken string) (string, erro
 
 	longURL, err := s.SelectLink(ctx, sToken)
 	if err != nil {
-		log.Printf("storage|getLongURL|%v\n", err)
 		return "", err
 	}
 	return longURL, nil
@@ -160,6 +162,19 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 	return "", err
 }
 
+func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
+	batch := &pgx.Batch{}
+	for _, v := range sTokens {
+		batch.Queue(deleteSQL, v.Token, v.User)
+	}
+	br := s.pgxConn.SendBatch(ctx, batch)
+	comTag, err := br.Exec()
+	if err != nil {
+		log.Printf("database|Batch delete request error|%v\n", err)
+	}
+	log.Printf("Изменено строк %d\n", comTag.RowsAffected())
+}
+
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 
 	response := make([]models.BatchResp, 0, 100)
@@ -230,9 +245,13 @@ func findErrorURL(ctx context.Context, db dbStorage, URL string) (string, error)
 func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
 	log.Println("Ищем длинный URL в бд")
 	var longURL string
-	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL)
+	var deleted bool
+	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL, &deleted)
 	if err != nil {
 		return "", models.ErrLinkNotFound
+	}
+	if deleted == true {
+		return "", models.ErrLinkDeleted
 	}
 	return longURL, nil
 }
