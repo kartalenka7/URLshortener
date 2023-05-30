@@ -128,6 +128,7 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 		log.Printf("database|Init table|%v\n", err)
 		return nil, err
 	}
+	log.Println(pgxConn.Ping(ctx))
 
 	if _, err = pgxConn.Exec(ctx, createSQL); err != nil {
 		log.Printf("database|Ошибка при создании таблицы|%v\n", err)
