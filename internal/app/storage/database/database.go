@@ -40,22 +40,19 @@ var (
 func New(ctx context.Context, config config.Config) (*dbStorage, error) {
 	var err error
 	var pgxPool *pgxpool.Pool
-	pgOnce.Do(func() {
-		//pgxConn, err := InitTable(ctx, config.Database)
-		pgxPool, err = InitTable(ctx, config.Database)
-		if err != nil {
-			log.Println("Не учитываем таблицу бд")
-			return
-		}
-		storage = dbStorage{
-			config: config,
-			/* pgxConn: pgxConn, */
-			pgxPool: pgxPool,
-		}
-	})
-	if storage.pgxPool == nil {
+
+	//pgxConn, err := InitTable(ctx, config.Database)
+	pgxPool, err = InitTable(ctx, config.Database)
+	if err != nil {
+		log.Println("Не учитываем таблицу бд")
 		return nil, err
 	}
+	storage = dbStorage{
+		config: config,
+		/* pgxConn: pgxConn, */
+		pgxPool: pgxPool,
+	}
+
 	return &storage, nil
 }
 
