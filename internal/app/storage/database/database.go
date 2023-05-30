@@ -26,7 +26,7 @@ var (
 					cookie TEXT, 
 					deleted BOOLEAN
 					);`
-	insertSQL      = `INSERT INTO urlsTable(short_url, long_url, cookie) VALUES ($1, $2, $3)`
+	insertSQL      = `INSERT INTO urlsTable(short_url, long_url, cookie, deleted) VALUES ($1, $2, $3, false)`
 	selectShortURL = `SELECT short_url FROM urlsTable WHERE long_url = $1`
 	selectByUser   = `SELECT short_url, long_url FROM urlsTable WHERE cookie = $1`
 	selectLongURL  = `SELECT long_url, deleted FROM urlsTable WHERE short_url = $1`
@@ -248,6 +248,7 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 	var deleted bool
 	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL, &deleted)
 	if err != nil {
+		log.Println(err.Error())
 		return "", models.ErrLinkNotFound
 	}
 	if deleted == true {
