@@ -119,8 +119,6 @@ func InitTable(ctx context.Context, connString string) (*pgx.Conn, error) {
 
 func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
 	var pgxError *pgconn.PgError
-	s.mu.Lock()         // берём мьютекс
-	defer s.mu.Unlock() // отпускаем мьютекс
 
 	res, err := s.pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
 	if err == nil {
