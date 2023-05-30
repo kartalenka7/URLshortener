@@ -12,11 +12,13 @@ import (
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
+	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type dbStorage struct {
-	config  config.Config
-	pgxConn *pgx.Conn
+	config config.Config
+	//pgxConn *pgxpool.Conn
+	pgxPool *pgxpool.Pool
 	mu      *sync.Mutex
 }
 
@@ -35,14 +37,16 @@ var (
 )
 
 func New(ctx context.Context, config config.Config) (*dbStorage, error) {
-	pgxConn, err := InitTable(ctx, config.Database)
+	//pgxConn, err := InitTable(ctx, config.Database)
+	pgxPool, err := InitTable(ctx, config.Database)
 	if err != nil {
 		log.Println("Не учитываем таблицу бд")
 		return nil, err
 	}
 	storage := dbStorage{
-		config:  config,
-		pgxConn: pgxConn,
+		config: config,
+		/* pgxConn: pgxConn, */
+		pgxPool: pgxPool,
 	}
 	return &storage, nil
 }
@@ -73,14 +77,23 @@ func (s dbStorage) GetStorageLen() int {
 }
 
 func (s *dbStorage) Ping(ctx context.Context) error {
-	return s.pgxConn.Ping(ctx)
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return err
+	}
+	return pgxConn.Ping(ctx)
 }
 
 func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	var link models.LinksData
 	userLinks := make(map[string]string)
 
-	rows, err := s.pgxConn.Query(ctx, selectByUser, cookie)
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return nil, err
+	}
+
+	rows, err := pgxConn.Query(ctx, selectByUser, cookie)
 	if err != nil {
 		return nil, err
 	}
@@ -99,11 +112,12 @@ func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]s
 	return userLinks, nil
 }
 
-func InitTable(ctx context.Context, connString string) (*pgx.Conn, error) {
+func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 	log.Println("Инициализация таблицы")
 
 	// открываем соединение с бд
-	pgxConn, err := pgx.Connect(ctx, connString)
+	/* pgxConn, err := pgx.Connect(ctx, connString) */
+	pgxConn, err := pgxpool.New(ctx, connString)
 	if err != nil {
 		log.Printf("database|Init table|%v\n", err)
 		return nil, err
@@ -119,8 +133,12 @@ func InitTable(ctx context.Context, connString string) (*pgx.Conn, error) {
 
 func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
 	var pgxError *pgconn.PgError
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return "", err
+	}
 
-	res, err := s.pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
+	res, err := pgxConn.Exec(ctx, insertSQL, shortURL, longURL, cookie)
 	if err == nil {
 		rows := res.RowsAffected()
 		if rows > 0 {
@@ -133,7 +151,7 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 	if !errors.As(err, &pgxError) {
 		return "", err
 	}
-	resSelect, errSelect := s.pgxConn.Query(ctx, selectShortURL, longURL)
+	resSelect, errSelect := pgxConn.Query(ctx, selectShortURL, longURL)
 	if errSelect != nil {
 		return "", errSelect
 	}
@@ -164,11 +182,15 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 }
 
 func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return
+	}
 	batch := &pgx.Batch{}
 	for _, v := range sTokens {
 		batch.Queue(deleteSQL, v.Token, v.User)
 	}
-	br := s.pgxConn.SendBatch(ctx, batch)
+	br := pgxConn.SendBatch(ctx, batch)
 	comTag, err := br.Exec()
 	if err != nil {
 		log.Printf("database|Batch delete request error|%v\n", err)
@@ -177,6 +199,10 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 }
 
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return nil, err
+	}
 
 	response := make([]models.BatchResp, 0, 100)
 	var errStmt error
@@ -186,7 +212,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	for _, batchValue := range batchReq {
 
 		// проверяем, что в базе еще нет такого url
-		_, err := findErrorURL(ctx, s, batchValue.URL)
+		_, err := s.findErrorURL(ctx, batchValue.URL)
 		if err != nil {
 			log.Printf("database|Find error URL|%v\n", errStmt)
 			return nil, err
@@ -203,8 +229,8 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 		})
 	}
 
-	br := s.pgxConn.SendBatch(ctx, batch)
-	_, err := br.Exec()
+	br := pgxConn.SendBatch(ctx, batch)
+	_, err = br.Exec()
 	if err != nil {
 		log.Printf("database|Batch req error|%v\n", err)
 	}
@@ -218,11 +244,16 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	return response, nil
 }
 
-func findErrorURL(ctx context.Context, db dbStorage, URL string) (string, error) {
+func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error) {
 	var link models.LinksData
 	var sToken string
 
-	rows, err := db.pgxConn.Query(ctx, selectShortURL, URL)
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return "", err
+	}
+
+	rows, err := pgxConn.Query(ctx, selectShortURL, URL)
 	if err != nil {
 		return "", err
 	}
@@ -247,7 +278,11 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 	log.Println("Ищем длинный URL в бд")
 	var longURL string
 	var deleted bool
-	err := s.pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL, &deleted)
+	pgxConn, err := s.pgxPool.Acquire(ctx)
+	if err == nil {
+		return "", err
+	}
+	err = pgxConn.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL, &deleted)
 	if err != nil {
 		log.Println(err.Error())
 		return "", models.ErrLinkNotFound
@@ -259,5 +294,6 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 }
 
 func (s *dbStorage) Close() error {
-	return s.pgxConn.Close(context.Background())
+	s.pgxPool.Close()
+	return nil
 }
