@@ -124,7 +124,7 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 	}
 
 	pgxConn, err := pgxPool.Acquire(ctx)
-	if err == nil {
+	if err != nil {
 		log.Printf("database|Init table|%v\n", err)
 		return nil, err
 	}
