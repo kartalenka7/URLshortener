@@ -10,9 +10,9 @@ import (
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 	"github.com/jackc/pgerrcode"
-	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v4"
+	"github.com/jackc/pgx/v4/pgxpool"
 	"github.com/jackc/pgx/v5/pgconn"
-	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type dbStorage struct {
@@ -116,7 +116,8 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 
 	// открываем соединение с бд
 	/* pgxConn, err := pgx.Connect(ctx, connString) */
-	pgxPool, err := pgxpool.New(ctx, connString)
+	//pgxPool, err := pgxpool.New(ctx, connString)
+	pgxPool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
 		log.Printf("database|Init table|%v\n", err)
 		return nil, err
