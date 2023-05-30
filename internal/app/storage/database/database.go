@@ -117,8 +117,14 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 
 	// открываем соединение с бд
 	/* pgxConn, err := pgx.Connect(ctx, connString) */
-	pgxConn, err := pgxpool.New(ctx, connString)
+	pgxPool, err := pgxpool.New(ctx, connString)
 	if err != nil {
+		log.Printf("database|Init table|%v\n", err)
+		return nil, err
+	}
+
+	pgxConn, err := pgxPool.Acquire(ctx)
+	if err == nil {
 		log.Printf("database|Init table|%v\n", err)
 		return nil, err
 	}
@@ -128,7 +134,7 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 		return nil, err
 	}
 
-	return pgxConn, nil
+	return pgxPool, nil
 }
 
 func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
