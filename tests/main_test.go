@@ -73,6 +73,7 @@ func TestPOST(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
+			log.Println("------------POST test--------------")
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			storer, err = database.New(ctx, cfg)
@@ -152,6 +153,7 @@ func TestGET(t *testing.T) {
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
+			log.Println("------------GET test--------------")
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			storer, err = database.New(ctx, cfg)
@@ -227,6 +229,7 @@ func TestJSON(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
+			log.Println("------------POST JSON test--------------")
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			storer, err = database.New(ctx, cfg)
