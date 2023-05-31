@@ -48,24 +48,25 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 	var deletedTokens []models.TokenUser
 	log.Println("Считываем значения из канала")
 	deletedTokens = make([]models.TokenUser, config.BatchSize)
-	timer := time.NewTimer(1 * time.Second)
+
 	// считываем значения из канала, пока он не будет закрыт
 	for i := range inputCh {
 		deletedTokens = append(deletedTokens, models.TokenUser{
 			Token: i,
 			User:  user,
 		})
-		select {
-		case <-timer.C:
-			log.Println("Сработал таймер")
+
+		if len(deletedTokens) == config.BatchSize {
+			log.Println(deletedTokens)
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
-		default:
-			if len(deletedTokens) == config.BatchSize {
-				log.Println(deletedTokens)
+		} else {
+			timer := time.AfterFunc(time.Second*5, func() {
+				log.Println("Запуск по таймеру")
 				s.storage.BatchDelete(ctx, deletedTokens)
 				deletedTokens = deletedTokens[:0]
-			}
+			})
+			defer timer.Stop()
 		}
 
 	}

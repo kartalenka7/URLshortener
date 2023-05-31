@@ -22,7 +22,7 @@ var (
 	baseURL   = "http://localhost:8080/"
 	//database  = "postgres://habruser:habr@localhost:5432/habrdb"
 	database  = "user=habruser password=habr host=localhost port=5432 dbname=habrdb sslmode=disable"
-	BatchSize = 50
+	BatchSize = 20
 )
 
 func GetConfig() (Config, error) {
