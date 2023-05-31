@@ -131,7 +131,7 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
 	var pgxError *pgconn.PgError
 	pgxConn, err := s.pgxPool.Acquire(ctx)
-	if err == nil {
+	if err != nil {
 		return "", err
 	}
 	defer pgxConn.Release()
