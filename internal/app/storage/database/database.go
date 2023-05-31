@@ -180,7 +180,7 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 }
 
 func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
-
+	log.Println("Batch delete")
 	batch := &pgx.Batch{}
 	for _, v := range sTokens {
 		batch.Queue(deleteSQL, v.Token, v.User)
@@ -190,7 +190,7 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 	if err != nil {
 		log.Printf("database|Batch delete request error|%v\n", err)
 	}
-	log.Printf("Изменено строк %d\n", comTag.RowsAffected())
+	log.Printf("После удаления зменено строк %d\n", comTag.RowsAffected())
 }
 
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
@@ -269,7 +269,7 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 		log.Println(err.Error())
 		return "", models.ErrLinkNotFound
 	}
-	if deleted == true {
+	if deleted {
 		return "", models.ErrLinkDeleted
 	}
 	return longURL, nil
