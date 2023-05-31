@@ -38,6 +38,7 @@ func New(config config.Config, storage Storer) *Service {
 
 func (s Service) AddDeletedTokens(sTokens []string, inputCh chan string) {
 	for _, token := range sTokens {
+		log.Printf("Добавляем значение в канал %s", token)
 		inputCh <- token
 	}
 	close(inputCh) // закрываем канал
@@ -47,7 +48,7 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 	var deletedTokens []models.TokenUser
 	log.Println("Считываем значения из канала")
 	deletedTokens = make([]models.TokenUser, config.BatchSize)
-	timer := time.NewTimer(5 * time.Second)
+	timer := time.NewTimer(1 * time.Second)
 	// считываем значения из канала, пока он не будет закрыт
 	for i := range inputCh {
 		deletedTokens = append(deletedTokens, models.TokenUser{
@@ -56,6 +57,7 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 		})
 		select {
 		case <-timer.C:
+			log.Println("Сработал таймер")
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
 		default:
