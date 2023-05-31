@@ -50,7 +50,8 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 	workerChannel := make(chan string, len(sTokens))
 
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
-	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
 	go s.service.RecieveTokensFromChannel(ctx, workerChannel, cookieValue)
 }
 

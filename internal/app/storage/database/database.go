@@ -32,7 +32,7 @@ var (
 	selectShortURL = `SELECT short_url FROM urlsDBTable WHERE long_url = $1`
 	selectByUser   = `SELECT short_url, long_url FROM urlsDBTable WHERE cookie = $1`
 	selectLongURL  = `SELECT long_url, deleted FROM urlsDBTable WHERE short_url = $1`
-	deleteSQL      = `UPDATE urlsDBTable SET deleted = 'true' WHERE short_url = $1, cookie = $2`
+	deleteSQL      = `UPDATE urlsDBTable SET deleted = 'true' WHERE short_url = $1 AND cookie = $2`
 	pgOnce         sync.Once
 	storage        dbStorage
 )
