@@ -22,17 +22,17 @@ type dbStorage struct {
 }
 
 var (
-	createSQL = `CREATE TABLE IF NOT EXISTS urlsTable(
+	createSQL = `CREATE TABLE IF NOT EXISTS urlsDBTable(
 					short_url TEXT,
 					long_url TEXT UNIQUE,
 					cookie TEXT, 
 					deleted BOOLEAN
 					);`
-	insertSQL      = `INSERT INTO urlsTable(short_url, long_url, cookie, deleted) VALUES ($1, $2, $3, false)`
-	selectShortURL = `SELECT short_url FROM urlsTable WHERE long_url = $1`
-	selectByUser   = `SELECT short_url, long_url FROM urlsTable WHERE cookie = $1`
-	selectLongURL  = `SELECT long_url, deleted FROM urlsTable WHERE short_url = $1`
-	deleteSQL      = `UPDATE urlsTable SET deleted = 'true' WHERE short_url = $1, cookie = $2`
+	insertSQL      = `INSERT INTO urlsDBTable(short_url, long_url, cookie, deleted) VALUES ($1, $2, $3, false)`
+	selectShortURL = `SELECT short_url FROM urlsDBTable WHERE long_url = $1`
+	selectByUser   = `SELECT short_url, long_url FROM urlsDBTable WHERE cookie = $1`
+	selectLongURL  = `SELECT long_url, deleted FROM urlsDBTable WHERE short_url = $1`
+	deleteSQL      = `UPDATE urlsDBTable SET deleted = 'true' WHERE short_url = $1, cookie = $2`
 	pgOnce         sync.Once
 	storage        dbStorage
 )
