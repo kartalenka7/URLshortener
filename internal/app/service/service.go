@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"log"
-	"sync"
 	"time"
 
 	urlNet "net/url"
@@ -28,7 +27,6 @@ type Storer interface {
 type Service struct {
 	Config  config.Config
 	storage Storer
-	mu      *sync.Mutex
 }
 
 func New(config config.Config, storage Storer) *Service {
@@ -53,12 +51,10 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 	log.Println("Считываем значения из канала")
 	// считываем значения из канала, пока он не будет закрыт
 	for i := range inputCh {
-		s.mu.Lock()
 		deletedTokens = append(deletedTokens, models.TokenUser{
 			Token: i,
 			User:  user,
 		})
-		s.mu.Unlock()
 		log.Printf("Токенов в batch: %d\n", len(deletedTokens))
 		if len(deletedTokens) == config.BatchSize {
 			log.Println(deletedTokens)
