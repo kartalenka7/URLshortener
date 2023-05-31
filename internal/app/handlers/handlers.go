@@ -51,8 +51,11 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-	defer cancel()
 	go s.service.RecieveTokensFromChannel(ctx, workerChannel, cookieValue)
+	time.AfterFunc(11*time.Second, func() {
+		log.Println("Запускаем cancel")
+		cancel()
+	})
 }
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
