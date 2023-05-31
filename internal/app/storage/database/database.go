@@ -9,10 +9,10 @@ import (
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
+	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
-	"github.com/jackc/pgx/v5/pgconn"
 )
 
 type dbStorage struct {
@@ -145,7 +145,7 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 		return "", nil
 	}
 
-	log.Printf("database|Insert line|%v\n", err)
+	log.Printf("database|Insert line|%s\n", err)
 	if !errors.As(err, &pgxError) {
 		return "", err
 	}
