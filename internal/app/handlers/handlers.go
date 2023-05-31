@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,6 +10,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -48,7 +50,8 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 	workerChannel := make(chan string, len(sTokens))
 
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
-	go s.service.RecieveTokensFromChannel(req.Context(), workerChannel, cookieValue)
+	ctx, _ := context.WithTimeout(context.Background(), 10*time.Second)
+	go s.service.RecieveTokensFromChannel(ctx, workerChannel, cookieValue)
 }
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {

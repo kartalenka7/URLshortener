@@ -47,7 +47,6 @@ func (s Service) AddDeletedTokens(sTokens []string, inputCh chan string) {
 var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
 
 func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan string, user string) {
-	var timer *time.Timer
 	log.Println("Считываем значения из канала")
 	// считываем значения из канала, пока он не будет закрыт
 	for i := range inputCh {
@@ -61,7 +60,7 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
 		} else {
-			timer = time.AfterFunc(time.Second*2, func() {
+			time.AfterFunc(time.Second*2, func() {
 				log.Println("Запуск по таймеру")
 				s.storage.BatchDelete(ctx, deletedTokens)
 				deletedTokens = deletedTokens[:0]
@@ -69,7 +68,6 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 		}
 
 	}
-	defer timer.Stop()
 }
 
 func (s Service) GetLongToken(sToken string) string {
