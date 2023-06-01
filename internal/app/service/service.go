@@ -58,18 +58,18 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 			User:  user,
 		})
 		log.Printf("Токенов в batch: %d\n", len(deletedTokens))
-		if len(deletedTokens) == config.BatchSize {
-			log.Println(deletedTokens)
+		select {
+		case <-time.After(10 * time.Second):
+			log.Println("Запуск по таймеру")
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
-		} else {
-			time.AfterFunc(time.Second*2, func() {
-				log.Println("Запуск по таймеру")
+		default:
+			if len(deletedTokens) >= config.BatchSize {
+				log.Println(deletedTokens)
 				s.storage.BatchDelete(ctx, deletedTokens)
 				deletedTokens = deletedTokens[:0]
-			})
+			}
 		}
-
 	}
 }
 
