@@ -41,15 +41,13 @@ func New(ctx context.Context, config config.Config) (*dbStorage, error) {
 	var err error
 	var pgxPool *pgxpool.Pool
 
-	//pgxConn, err := InitTable(ctx, config.Database)
 	pgxPool, err = InitTable(ctx, config.Database)
 	if err != nil {
 		log.Println("Не учитываем таблицу бд")
 		return nil, err
 	}
 	storage = dbStorage{
-		config: config,
-		/* pgxConn: pgxConn, */
+		config:  config,
 		pgxPool: pgxPool,
 	}
 
@@ -112,8 +110,6 @@ func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
 	log.Println("Инициализация таблицы")
 
 	// открываем соединение с бд
-	/* pgxConn, err := pgx.Connect(ctx, connString) */
-	//pgxPool, err := pgxpool.New(ctx, connString)
 	pgxPool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
 		log.Printf("database|Init table|%v\n", err)

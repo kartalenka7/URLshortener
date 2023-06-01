@@ -38,8 +38,9 @@ func New(config config.Config, storage Storer) *Service {
 
 func (s Service) AddDeletedTokens(sTokens []string, inputCh chan string) {
 	for _, token := range sTokens {
-		log.Printf("Добавляем значение в канал %s", token)
-		inputCh <- token
+		sToken := s.GetLongToken(token)
+		log.Printf("Добавляем значение в канал %s", sToken)
+		inputCh <- sToken
 	}
 	close(inputCh) // закрываем канал
 }
