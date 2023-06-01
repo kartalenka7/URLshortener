@@ -50,7 +50,7 @@ func (s Service) AddDeletedTokens(sTokens []string, inputCh chan string) {
 
 var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
 
-func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan string, user string) {
+func (s Service) RecieveTokensFromChannel(ctx context.Context, timer *time.Timer, inputCh chan string, user string) {
 	log.Println("Считываем значения из канала")
 	// считываем значения из канала, пока он не будет закрыт
 	for i := range inputCh {
@@ -60,7 +60,7 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 		})
 		log.Printf("Токенов в batch: %d\n", len(deletedTokens))
 		select {
-		case <-time.After(500 * time.Microsecond):
+		case <-timer.C:
 			log.Println("Запуск по таймеру")
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
