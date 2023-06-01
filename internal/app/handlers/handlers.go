@@ -49,7 +49,7 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 
 	workerChannel := make(chan string, len(sTokens))
 
-	timer := time.NewTimer(500 * time.Millisecond)
+	timer := time.NewTimer(2 * time.Second)
 
 	// в первой горутине отправляем токены в канал
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
