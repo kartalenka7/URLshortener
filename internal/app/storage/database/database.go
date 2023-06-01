@@ -56,7 +56,7 @@ func New(ctx context.Context, config config.Config) (*dbStorage, error) {
 
 func (s *dbStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 
-	log.Printf("Записываем в бд %s %s\n", sToken, longURL)
+	log.Printf("Записываем в бд %s %s %s\n", sToken, longURL, user)
 	// используем контекст запроса
 	shortURL, err := s.InsertLine(ctx, sToken, longURL, user)
 	if err != nil {
