@@ -186,7 +186,7 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 	if err != nil {
 		log.Printf("database|Batch delete request error|%v\n", err)
 	}
-	log.Printf("После удаления зменено строк %d\n", comTag.RowsAffected())
+	log.Printf("После удаления Изменено строк %d\n", comTag.RowsAffected())
 }
 
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {

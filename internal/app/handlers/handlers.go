@@ -52,12 +52,13 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 	// в первой горутине отправляем токены в канал
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
+	// дедлайн контекста достига
+	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 
 	// во второй горутине получаем токены из канала и формируем  слайс для batch запроса
 	go s.service.RecieveTokensFromChannel(ctx, workerChannel, cookieValue)
 
-	time.AfterFunc(20*time.Second, func() {
+	time.AfterFunc(6*time.Second, func() {
 		log.Println("Запускаем cancel")
 		cancel()
 	})
@@ -170,7 +171,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 	lToken := s.service.GetLongToken(shortURL)
 	longURL, err := s.service.GetLongURL(req.Context(), lToken)
 	if err != nil {
-		log.Printf("handlers|getFullURL|%v\n", err)
+		log.Printf("handlers|getFullURL %s |%v\n", lToken, err)
 		if errors.Is(err, models.ErrLinkDeleted) {
 			http.Error(rw, err.Error(), http.StatusGone)
 			return

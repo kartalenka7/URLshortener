@@ -60,7 +60,7 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 		})
 		log.Printf("Токенов в batch: %d\n", len(deletedTokens))
 		select {
-		case <-time.After(10 * time.Second):
+		case <-time.After(3 * time.Second):
 			log.Println("Запуск по таймеру")
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
