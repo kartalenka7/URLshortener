@@ -39,7 +39,7 @@ func New(config config.Config, storage Storer) *Service {
 
 func (s Service) AddDeletedTokens(sTokens []string, inputCh chan string) {
 	for _, token := range sTokens {
-		strings.Replace(token, `"`, ``, -1)
+		token = strings.Replace(token, `"`, ``, -1)
 		sToken := s.GetLongToken(token)
 		log.Printf("Добавляем значение в канал %s", sToken)
 		inputCh <- sToken
