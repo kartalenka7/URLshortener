@@ -26,7 +26,7 @@ var (
 
 func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 	var sTokens []string
-
+	log.Println("delete URLs")
 	// читаем строку в формате [ "a", "b", "c", "d", ...]
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -49,16 +49,13 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 
 	workerChannel := make(chan string, len(sTokens))
 
-	timer := time.NewTimer(2 * time.Second)
-
 	// в первой горутине отправляем токены в канал
 	go s.service.AddDeletedTokens(sTokens, workerChannel)
 
-	// дедлайн контекста достига
 	ctx, cancel := context.WithTimeout(context.Background(), 6*time.Second)
 
 	// во второй горутине получаем токены из канала и формируем  слайс для batch запроса
-	go s.service.RecieveTokensFromChannel(ctx, timer, workerChannel, cookieValue)
+	go s.service.RecieveTokensFromChannel(ctx, workerChannel, cookieValue)
 
 	time.AfterFunc(6*time.Second, func() {
 		log.Println("Запускаем cancel")
