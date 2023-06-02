@@ -32,42 +32,54 @@ type Service struct {
 	Config  config.Config
 	storage Storer
 	Once    *sync.Once
+	OutCh   chan string
+	user    string
 }
 
-func New(config config.Config, storage Storer) *Service {
-	return &Service{
-		Config:  config,
+func New(cfg config.Config, storage Storer) *Service {
+	service := &Service{
+		Config:  cfg,
 		storage: storage,
 		Once:    &once,
+		OutCh:   make(chan string, config.BatchSize),
 	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	go service.RecieveTokensFromChannel(ctx)
+	time.AfterFunc(60*time.Second, func() {
+		log.Println("Запускаем cancel")
+		cancel()
+	})
+
+	return service
 }
 
-func (s Service) AddDeletedTokens(sTokens []string, inputCh chan string) {
+func (s Service) AddDeletedTokens(sTokens []string, user string) {
+	s.user = user
 	replacer := strings.NewReplacer(`"`, ``, `[`, ``, `]`, ``)
 	for _, token := range sTokens {
 		token = replacer.Replace(token)
 		sToken := s.GetLongToken(token)
 		log.Printf("Добавляем значение в канал %s", sToken)
-		inputCh <- sToken
+		s.OutCh <- sToken
 	}
-	close(inputCh) // закрываем канал
+
 }
 
 var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
 
-func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan string, user string) {
-	log.Println("Считываем значения из канала")
-	ticker := time.NewTicker(200 * time.Millisecond)
+func (s Service) RecieveTokensFromChannel(ctx context.Context) {
+	log.Println("Запустили канал")
+	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	// считываем значения из канала, пока он не будет закрыт
 	for {
 		select {
-		case x := <-inputCh:
+		case x := <-s.OutCh:
 			deletedTokens = append(deletedTokens, models.TokenUser{
 				Token: x,
-				User:  user,
+				User:  s.user,
 			})
-			log.Printf("Токенов в batch: %d\n", len(deletedTokens))
+			log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
 			if len(deletedTokens) >= config.BatchSize {
 				log.Println(deletedTokens)
 				s.storage.BatchDelete(ctx, deletedTokens)
@@ -121,5 +133,6 @@ func (s Service) GetStorageLen() int {
 }
 
 func (s Service) Close() error {
+	close(s.OutCh)
 	return s.storage.Close()
 }

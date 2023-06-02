@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,7 +9,6 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/go-chi/chi/v5"
 
@@ -47,22 +45,9 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 		cookieValue = cookie.Value
 	}
 
-	workerChannel := make(chan string, len(sTokens))
+	// отправляем токены в канал
+	go s.service.AddDeletedTokens(sTokens, cookieValue)
 
-	// в первой горутине отправляем токены в канал
-	go s.service.AddDeletedTokens(sTokens, workerChannel)
-
-	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
-
-	s.service.Once.Do(func() {
-		// во второй горутине получаем токены из канала и формируем  слайс для batch запроса
-		go s.service.RecieveTokensFromChannel(ctx, workerChannel, cookieValue)
-	})
-
-	time.AfterFunc(60*time.Second, func() {
-		log.Println("Запускаем cancel")
-		cancel()
-	})
 }
 
 func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {

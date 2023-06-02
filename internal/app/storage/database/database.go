@@ -182,10 +182,12 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 		batch.Queue(deleteSQL, v.Token, v.User)
 	}
 	br := s.pgxPool.SendBatch(ctx, batch)
+	defer br.Close()
 	comTag, err := br.Exec()
 	if err != nil {
 		log.Printf("database|Batch delete request error|%v\n", err)
 	}
+
 	log.Printf("После удаления Изменено строк %d\n", comTag.RowsAffected())
 }
 
@@ -216,6 +218,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	}
 
 	br := s.pgxPool.SendBatch(ctx, batch)
+	defer br.Close()
 	_, err := br.Exec()
 	if err != nil {
 		log.Printf("database|Batch req error|%v\n", err)
@@ -223,10 +226,6 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 
 	log.Printf("Структура ответа %s\n", response)
 
-	err = br.Close()
-	if err != nil {
-		return nil, err
-	}
 	return response, nil
 }
 
