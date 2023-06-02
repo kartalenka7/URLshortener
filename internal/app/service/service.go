@@ -57,7 +57,7 @@ var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
 
 func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan string, user string) {
 	log.Println("Считываем значения из канала")
-	ticker := time.NewTicker(1 * time.Second)
+	ticker := time.NewTicker(200 * time.Millisecond)
 	defer ticker.Stop()
 	// считываем значения из канала, пока он не будет закрыт
 	for {
