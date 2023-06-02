@@ -29,7 +29,7 @@ type Storer interface {
 type Service struct {
 	Config  config.Config
 	storage Storer
-	Once    sync.Once
+	Once    *sync.Once
 }
 
 func New(config config.Config, storage Storer) *Service {
