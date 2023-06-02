@@ -26,6 +26,8 @@ type Storer interface {
 	GetStorageLen() int
 }
 
+var once sync.Once
+
 type Service struct {
 	Config  config.Config
 	storage Storer
@@ -36,6 +38,7 @@ func New(config config.Config, storage Storer) *Service {
 	return &Service{
 		Config:  config,
 		storage: storage,
+		Once:    &once,
 	}
 }
 
