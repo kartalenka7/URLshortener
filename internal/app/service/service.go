@@ -72,6 +72,10 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context, inputCh chan stri
 			log.Println("Запуск по таймеру")
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
+
+		case <-ctx.Done():
+			log.Println("Отменился контекст")
+			return
 		}
 	}
 }
