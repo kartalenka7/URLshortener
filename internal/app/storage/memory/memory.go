@@ -16,6 +16,7 @@ type LinksData struct {
 	ShortURL string `json:"short"`
 	LongURL  string `json:"long"`
 	User     string `json:"user"`
+	deleted  bool
 }
 
 var mutex sync.Mutex
@@ -23,6 +24,7 @@ var mutex sync.Mutex
 type MemoryStorage struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
+	deletedMap map[string]bool
 	config     config.Config
 	mu         *sync.Mutex
 }
@@ -66,6 +68,10 @@ func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, e
 	longURL, ok := s.linksMap[sToken]
 	if !ok {
 		return "", errors.New("link is not found")
+	}
+	deleted, ok := s.deletedMap[sToken]
+	if deleted {
+		return "", models.ErrLinkDeleted
 	}
 	return longURL, err
 }
@@ -114,8 +120,13 @@ func (s MemoryStorage) ReadFromFile() {
 			fmt.Println(err.Error())
 			break
 		}
+		_, ok := s.linksMap[readlinks.ShortURL]
+		if ok {
+			continue
+		}
 		s.linksMap[readlinks.ShortURL] = readlinks.LongURL
 		s.cookiesMap[readlinks.ShortURL] = readlinks.User
+		s.deletedMap[readlinks.ShortURL] = readlinks.deleted
 	}
 
 }
@@ -137,6 +148,7 @@ func (s MemoryStorage) WriteInFile() {
 			ShortURL: short,
 			LongURL:  long,
 			User:     s.cookiesMap[short],
+			deleted:  s.deletedMap[short],
 		}
 		if err := producer.WriteLinks(&links); err != nil {
 			log.Println(err.Error())
@@ -146,5 +158,14 @@ func (s MemoryStorage) WriteInFile() {
 }
 
 func (s MemoryStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
-
+	log.Println("Batch delete для in-memory")
+	s.ReadFromFile()
+	for _, v := range sTokens {
+		user, ok := s.cookiesMap[v.Token]
+		if user != v.User || !ok {
+			continue
+		}
+		s.deletedMap[v.Token] = true
+	}
+	s.WriteInFile()
 }
