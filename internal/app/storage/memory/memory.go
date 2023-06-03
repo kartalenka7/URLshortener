@@ -70,8 +70,7 @@ func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, e
 	if !ok {
 		return "", errors.New("link is not found")
 	}
-	deleted, _ := s.deletedMap[sToken]
-	if deleted {
+	if deleted := s.deletedMap[sToken]; deleted {
 		return "", models.ErrLinkDeleted
 	}
 	return longURL, err
