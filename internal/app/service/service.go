@@ -33,15 +33,15 @@ type Service struct {
 	storage Storer
 	Once    *sync.Once
 	OutCh   chan string
-	user    string
+	userCh  chan string
 }
 
 func New(cfg config.Config, storage Storer) *Service {
 	service := &Service{
 		Config:  cfg,
 		storage: storage,
-		Once:    &once,
 		OutCh:   make(chan string, config.BatchSize),
+		userCh:  make(chan string),
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	go service.RecieveTokensFromChannel(ctx)
@@ -54,8 +54,10 @@ func New(cfg config.Config, storage Storer) *Service {
 }
 
 func (s Service) AddDeletedTokens(sTokens []string, user string) {
-	s.user = user
 	replacer := strings.NewReplacer(`"`, ``, `[`, ``, `]`, ``)
+
+	log.Printf("Куки в AddDeletedTokens:%s\n", user)
+	s.userCh <- user
 	for _, token := range sTokens {
 		token = replacer.Replace(token)
 		sToken := s.GetLongToken(token)
@@ -74,22 +76,25 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context) {
 	// считываем значения из канала, пока он не будет закрыт
 	for {
 		select {
-		case x := <-s.OutCh:
-			deletedTokens = append(deletedTokens, models.TokenUser{
-				Token: x,
-				User:  s.user,
-			})
-			log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
-			if len(deletedTokens) >= config.BatchSize {
-				log.Println(deletedTokens)
+		case u := <-s.userCh:
+			select {
+			case x := <-s.OutCh:
+				log.Printf("Куки в RecieveTokensFromChannel:%s\n", u)
+				deletedTokens = append(deletedTokens, models.TokenUser{
+					Token: x,
+					User:  u,
+				})
+				log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
+				if len(deletedTokens) >= config.BatchSize {
+					log.Println(deletedTokens)
+					s.storage.BatchDelete(ctx, deletedTokens)
+					deletedTokens = deletedTokens[:0]
+				}
+			case <-ticker.C:
+				log.Println("Запуск по таймеру")
 				s.storage.BatchDelete(ctx, deletedTokens)
 				deletedTokens = deletedTokens[:0]
 			}
-		case <-ticker.C:
-			log.Println("Запуск по таймеру")
-			s.storage.BatchDelete(ctx, deletedTokens)
-			deletedTokens = deletedTokens[:0]
-
 		case <-ctx.Done():
 			log.Println("Отменился контекст")
 			return
@@ -134,5 +139,6 @@ func (s Service) GetStorageLen() int {
 
 func (s Service) Close() error {
 	close(s.OutCh)
+	close(s.userCh)
 	return s.storage.Close()
 }
