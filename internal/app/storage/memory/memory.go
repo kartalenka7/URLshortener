@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"sync"
 
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
@@ -17,10 +18,13 @@ type LinksData struct {
 	User     string `json:"user"`
 }
 
+var mutex sync.Mutex
+
 type MemoryStorage struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
 	config     config.Config
+	mu         *sync.Mutex
 }
 
 func New(config config.Config) *MemoryStorage {
@@ -28,6 +32,7 @@ func New(config config.Config) *MemoryStorage {
 		linksMap:   make(map[string]string),
 		cookiesMap: map[string]string{},
 		config:     config,
+		mu:         &mutex,
 	}
 	if config.File != "" {
 		memStore.ReadFromFile()
@@ -37,6 +42,8 @@ func New(config config.Config) *MemoryStorage {
 
 func (s MemoryStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 	var err error
+	s.mu.Lock()
+	defer s.mu.Unlock()
 
 	_, ok := s.linksMap[sToken]
 	if ok {
