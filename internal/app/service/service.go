@@ -70,6 +70,7 @@ func (s Service) AddDeletedTokens(sTokens []string, user string) {
 var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
 
 func (s Service) RecieveTokensFromChannel(ctx context.Context) {
+	var user string
 	log.Println("Запустили канал")
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
@@ -77,24 +78,24 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context) {
 	for {
 		select {
 		case u := <-s.userCh:
-			select {
-			case x := <-s.OutCh:
-				log.Printf("Куки в RecieveTokensFromChannel:%s\n", u)
-				deletedTokens = append(deletedTokens, models.TokenUser{
-					Token: x,
-					User:  u,
-				})
-				log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
-				if len(deletedTokens) >= config.BatchSize {
-					log.Println(deletedTokens)
-					s.storage.BatchDelete(ctx, deletedTokens)
-					deletedTokens = deletedTokens[:0]
-				}
-			case <-ticker.C:
-				log.Println("Запуск по таймеру")
+			user = u
+		case x := <-s.OutCh:
+			log.Printf("Куки в RecieveTokensFromChannel:%s\n", user)
+			deletedTokens = append(deletedTokens, models.TokenUser{
+				Token: x,
+				User:  user,
+			})
+			log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
+			if len(deletedTokens) >= config.BatchSize {
+				log.Println(deletedTokens)
 				s.storage.BatchDelete(ctx, deletedTokens)
 				deletedTokens = deletedTokens[:0]
 			}
+		case <-ticker.C:
+			log.Println("Запуск по таймеру")
+			s.storage.BatchDelete(ctx, deletedTokens)
+			deletedTokens = deletedTokens[:0]
+
 		case <-ctx.Done():
 			log.Println("Отменился контекст")
 			return
