@@ -33,6 +33,7 @@ func New(config config.Config) *MemoryStorage {
 	memStore := &MemoryStorage{
 		linksMap:   make(map[string]string),
 		cookiesMap: map[string]string{},
+		deletedMap: make(map[string]bool),
 		config:     config,
 		mu:         &mutex,
 	}
@@ -69,7 +70,7 @@ func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, e
 	if !ok {
 		return "", errors.New("link is not found")
 	}
-	deleted, ok := s.deletedMap[sToken]
+	deleted, _ := s.deletedMap[sToken]
 	if deleted {
 		return "", models.ErrLinkDeleted
 	}
