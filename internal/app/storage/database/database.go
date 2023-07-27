@@ -217,7 +217,6 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 	response := make([]models.BatchResp, 0, 100)
-	var errStmt error
 
 	batch := &pgx.Batch{}
 
@@ -226,7 +225,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 		// проверяем, что в базе еще нет такого url
 		_, err := s.findErrorURL(ctx, batchValue.URL)
 		if err != nil {
-			s.log.Error(errStmt.Error())
+			s.log.Error(err.Error())
 			return nil, err
 		}
 

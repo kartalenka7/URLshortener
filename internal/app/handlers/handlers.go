@@ -65,7 +65,7 @@ func (s *Server) ShortenURL(rw http.ResponseWriter, req *http.Request) {
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
-		s.log.Error(err.Error)
+		s.log.Error(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -288,7 +288,7 @@ func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(links) == 0 {
-		s.log.Info("Не нашли сокращенных пользователем URL")
+		s.log.Debug("Не нашли сокращенных пользователем URL")
 		rw.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -298,10 +298,8 @@ func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
 		urls = append(urls, &CookiesURL{
 			ShortURL: short,
 			OrigURL:  long})
-		s.log.WithFields(logrus.Fields{}).Info(
-			"Возвращаемые url для текущего пользователя %s\n", &CookiesURL{
-				ShortURL: short,
-				OrigURL:  long})
+		s.log.WithFields(logrus.Fields{"short url": short,
+			"original url": long}).Info("Возвращаемые url для текущего пользователя ")
 	}
 
 	rw.Header().Set("Content-Type", contentTypeJSON)

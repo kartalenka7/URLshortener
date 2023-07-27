@@ -25,6 +25,7 @@ func ExampleServer_GetUserURLs() {
 	storage := storage.New(cfg, log)
 	serv := &Server{
 		service: *service.New(cfg, storage, log),
+		log:     log,
 	}
 
 	url := endpoint + "/api/user/urls"
@@ -41,6 +42,7 @@ func ExampleServer_GetUserURLs() {
 	handler.ServeHTTP(w, request)
 
 	response := w.Result()
+	defer response.Body.Close()
 	fmt.Println(response.StatusCode)
 
 	// Output:
@@ -58,6 +60,7 @@ func ExampleServer_DeleteURLs() {
 	storage := storage.New(cfg, log)
 	serv := &Server{
 		service: *service.New(cfg, storage, log),
+		log:     log,
 	}
 
 	url := endpoint + "/api/user/urls"
@@ -71,6 +74,7 @@ func ExampleServer_DeleteURLs() {
 	handler.ServeHTTP(w, request)
 
 	response := w.Result()
+	defer response.Body.Close()
 	fmt.Println(response.StatusCode)
 
 	// Output:
