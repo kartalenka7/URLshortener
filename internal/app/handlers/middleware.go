@@ -10,6 +10,7 @@ import (
 	"example.com/shortener/internal/config/utils"
 )
 
+// gzipHandle распаковывает данные запроса, поддерживающего gzip-сжатие
 func gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		log.Println("gzip")
@@ -48,6 +49,8 @@ func gzipHandle(next http.Handler) http.Handler {
 	})
 }
 
+// AddCookie генерирует куки для пользователя и добавляет к запросу с помощью
+// func (*http.Request).AddCookie(c *http.Cookie)
 func AddCookie(r *http.Request) error {
 	log.Println("Не нашли куки User")
 	usercookie, err := utils.WriteCookies()

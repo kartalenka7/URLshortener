@@ -1,8 +1,9 @@
+// Модуль service служит прослойкой между модулем с обработчиками handlers
+// и модулем, реализующим хранение данных - storages
 package service
 
 import (
 	"context"
-	"log"
 	"strings"
 	"sync"
 	"time"
@@ -12,6 +13,7 @@ import (
 	"example.com/shortener/internal/app/models"
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
+	"github.com/sirupsen/logrus"
 )
 
 // Storer - интерфейс взаимодействия с хранилищем
@@ -28,40 +30,46 @@ type Storer interface {
 
 var once sync.Once
 
+// Service - реализует методы, которые подготавливают и обрабатывают
+// данные из модуля handlers для последующей передачи в хранилище
 type Service struct {
 	Config  config.Config
 	storage Storer
 	Once    *sync.Once
 	OutCh   chan string
 	userCh  chan string
+	log     *logrus.Logger
 }
 
-func New(cfg config.Config, storage Storer) *Service {
+func New(cfg config.Config, storage Storer, log *logrus.Logger) *Service {
 	service := &Service{
 		Config:  cfg,
 		storage: storage,
 		OutCh:   make(chan string, config.BatchSize),
 		userCh:  make(chan string),
+		log:     log,
 	}
 	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	go service.RecieveTokensFromChannel(ctx)
 	time.AfterFunc(60*time.Second, func() {
-		log.Println("Запускаем cancel")
+		log.Debug("Запускаем cancel")
 		cancel()
 	})
 
 	return service
 }
 
+// AddDeletedTokens складывает токены, переданные пользователем для удаления в канал
+// service.outCh
 func (s Service) AddDeletedTokens(sTokens []string, user string) {
 	replacer := strings.NewReplacer(`"`, ``, `[`, ``, `]`, ``)
 
-	log.Printf("Куки в AddDeletedTokens:%s\n", user)
+	s.log.WithFields(logrus.Fields{"cookies": user}).Debug("Куки в AddDeletedTokens")
 	s.userCh <- user
 	for _, token := range sTokens {
 		token = replacer.Replace(token)
 		sToken := s.GetLongToken(token)
-		log.Printf("Добавляем значение в канал %s", sToken)
+		s.log.WithFields(logrus.Fields{"sToken": sToken}).Debug("Добавляем значение в канал")
 		s.OutCh <- sToken
 	}
 
@@ -69,9 +77,12 @@ func (s Service) AddDeletedTokens(sTokens []string, user string) {
 
 var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
 
+// RecieveTokensFromChannel получает куки пользователя
+// из канала service.userCh, токены для удаления из канала service.outCh
+// и запускает удаление с помощью batch запроса
 func (s Service) RecieveTokensFromChannel(ctx context.Context) {
 	var user string
-	log.Println("Запустили канал")
+	s.log.Debug("Запустили канал")
 	ticker := time.NewTicker(500 * time.Millisecond)
 	defer ticker.Stop()
 	// считываем значения из канала, пока он не будет закрыт
@@ -80,24 +91,24 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context) {
 		case u := <-s.userCh:
 			user = u
 		case x := <-s.OutCh:
-			log.Printf("Куки в RecieveTokensFromChannel:%s\n", user)
+			s.log.WithFields(logrus.Fields{"cookie": user}).Debug("Куки в RecieveTokensFromChannel")
 			deletedTokens = append(deletedTokens, models.TokenUser{
 				Token: x,
 				User:  user,
 			})
-			log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
+			s.log.WithFields(logrus.Fields{"tokens count": len(deletedTokens)}).
+				Debug("Приняли токенов из канала")
 			if len(deletedTokens) >= config.BatchSize {
-				log.Println(deletedTokens)
+				s.log.WithFields(logrus.Fields{"deleted tokens": deletedTokens})
 				s.storage.BatchDelete(ctx, deletedTokens)
 				deletedTokens = deletedTokens[:0]
 			}
 		case <-ticker.C:
-			log.Println("Запуск по таймеру")
 			s.storage.BatchDelete(ctx, deletedTokens)
 			deletedTokens = deletedTokens[:0]
 
 		case <-ctx.Done():
-			log.Println("Отменился контекст")
+			s.log.Debug("Отменился контекст")
 			return
 		}
 	}
@@ -109,7 +120,7 @@ func (s Service) GetLongToken(sToken string) string {
 	if urlParseErr != nil {
 		longToken = s.Config.BaseURL + "/" + sToken
 	}
-	log.Printf("longToken %s", longToken)
+	s.log.WithFields(logrus.Fields{"longToken": longToken})
 	return longToken
 }
 

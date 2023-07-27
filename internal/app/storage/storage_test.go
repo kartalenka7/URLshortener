@@ -9,6 +9,7 @@ import (
 	memory "example.com/shortener/internal/app/storage/memory"
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
+	"example.com/shortener/internal/logger"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -42,8 +43,9 @@ func TestStorage(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			//s := NewStorage(config.Config{File: tt.file})
+			log := logger.InitLog()
 			storer := memory.New(config.Config{File: tt.file})
-			s := service.New(config.Config{File: tt.file}, storer)
+			s := service.New(config.Config{File: tt.file}, storer, log)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			// Добавляем ссылку в хранилище

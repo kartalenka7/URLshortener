@@ -1,3 +1,4 @@
+// модуль models содержит описание основных сущностей приложения
 package models
 
 import (
@@ -9,6 +10,7 @@ type BatchReq struct {
 	URL    string `json:"original_url"`
 }
 
+// BatchResp используется для передачи ответа в формате json
 type BatchResp struct {
 	CorrID   string `json:"correlation_id"`
 	ShortURL string `json:"short_url"`
@@ -20,7 +22,7 @@ type LinksData struct {
 	User     string `json:"user"`
 }
 
-// Структура, куда будем накапливать токены URLов, подлежащих удалению
+// Структура TokenUser, куда будем накапливать токены URLов, подлежащиe удалению
 type TokenUser struct {
 	Token string
 	User  string

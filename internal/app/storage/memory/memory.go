@@ -1,3 +1,4 @@
+// модуль memory реализует хранение данных в файле
 package memory
 
 import (
@@ -11,7 +12,7 @@ import (
 	"example.com/shortener/internal/config"
 )
 
-// Структура для записи в файл
+// LinksData структура записи в файл
 type LinksData struct {
 	ShortURL string `json:"short"`
 	LongURL  string `json:"long"`

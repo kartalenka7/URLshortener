@@ -29,7 +29,7 @@ func GetConfig() (Config, error) {
 	var cfg Config
 	var cfgFlag Config
 	// Парсим переменные окружения
-	fmt.Println("Parse")
+	log.Println("Parse")
 	err := env.Parse(&cfg)
 	if err != nil {
 		fmt.Printf("ошибка %s", err.Error())

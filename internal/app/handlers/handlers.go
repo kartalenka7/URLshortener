@@ -1,3 +1,6 @@
+// Модуль handlers содержит инициализацию роутера,
+// методы-обработчики запросов, а также методы для
+// реализации middleware.
 package handlers
 
 import (
@@ -10,11 +13,12 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-chi/chi/v5"
-
 	"example.com/shortener/internal/app/models"
+	"github.com/go-chi/chi/v5"
+	"github.com/sirupsen/logrus"
 )
 
+// Параметры запроса
 var (
 	paramID         = "id"
 	headerLocation  = "Location"
@@ -22,14 +26,14 @@ var (
 	encodGzip       = "gzip"
 )
 
-func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
+func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 	var sTokens []string
-	log.Println("delete URLs")
+	s.log.Debug("delete URLs")
 	// читаем строку в формате [ "a", "b", "c", "d", ...]
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
-		log.Printf("handlers|shortenURL|%v\n", err)
+		s.log.Error(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -50,21 +54,23 @@ func (s *Server) deleteURLs(rw http.ResponseWriter, req *http.Request) {
 
 }
 
-func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
+// ShortenURL - обработчик для запроса POST /
+// возвращает скоращенный токен в теле ответа
+func (s *Server) ShortenURL(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
 	var errToken error
-	log.Println("shorten URL")
+	s.log.Debug("shorten URL")
 
 	// Читаем строку URL из body
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
 	if err != nil {
-		log.Printf("handlers|shortenURL|%v\n", err)
+		s.log.Error(err.Error)
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	url := strings.Replace(string(b), "url=", "", 1)
-	log.Printf("long url %s\n", url)
+	s.log.WithFields(logrus.Fields{"long url": url})
 
 	var cookieValue string
 	cookie, err := req.Cookie("User")
@@ -72,7 +78,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 		cookieValue = cookie.Value
 	}
 
-	log.Printf("Возвращены куки %s\n", cookie)
+	s.log.WithFields(logrus.Fields{"returned cookie": cookie})
 	http.SetCookie(rw, cookie)
 
 	// добавляем длинный url в хранилище, генерируем токен
@@ -84,7 +90,7 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 			// возвращаем ответ с кодом 409
 			rw.WriteHeader(http.StatusConflict)
 			// пишем в тело ответа сокращенный URL
-			log.Printf("Короткий URL из бд %s", gToken)
+			s.log.WithFields(logrus.Fields{"short URL from db": gToken})
 			fmt.Fprint(rw, gToken)
 			return
 		}
@@ -96,13 +102,15 @@ func (s *Server) shortenURL(rw http.ResponseWriter, req *http.Request) {
 	rw.WriteHeader(http.StatusCreated)
 
 	// пишем в тело ответа сокращенный URL
-	log.Printf("Short URL %s", gToken)
+	s.log.WithFields(logrus.Fields{"Short URL": gToken})
 	fmt.Fprint(rw, gToken)
 }
 
+// shortenBatch сокращает URL, переданные в виде списка JSON объектов.
+// возвращает результат с сокращенными токенами также в виде JSON объекта
 func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 
-	log.Println("Shorten Batch")
+	s.log.Debug("Shorten Batch")
 	// чтение JSON объектов из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
@@ -111,7 +119,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	buffer := make([]models.BatchReq, 0, 100)
 
 	if err := decoder.Decode(&buffer); err != nil {
-		log.Printf("handlers|shortenBatch|%v\n", err)
+		s.log.Error(err.Error())
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -123,7 +131,7 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
-	fmt.Printf("Возвращены куки %s\n", cookie)
+	s.log.WithFields(logrus.Fields{"cookie": cookie})
 	http.SetCookie(rw, cookie)
 
 	response, err := s.service.ShortenBatch(req.Context(), buffer, cookieValue)
@@ -142,22 +150,24 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(response)
-	log.Printf("Ответ, закодированный в JSON, %s\n", response)
+	s.log.WithFields(logrus.Fields{"response": response}).Debug("Ответ, закодированный в JSON")
 	fmt.Fprint(rw, buf)
 }
 
-func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
-	log.Println("Get full url")
+// GetFullURL - обработчик запроса GET /{id}, где id - сокращенный токен
+// возвращает исходный URL
+func (s *Server) GetFullURL(rw http.ResponseWriter, req *http.Request) {
+	s.log.Debug("Get full url")
 
 	//получаем сокращенный url из параметра
 	shortURL := chi.URLParam(req, paramID)
-	log.Printf("short url %s\n", shortURL)
+	s.log.WithFields(logrus.Fields{"short url": shortURL})
 
 	// получаем длинный url
 	lToken := s.service.GetLongToken(shortURL)
 	longURL, err := s.service.GetLongURL(req.Context(), lToken)
 	if err != nil {
-		log.Printf("handlers|getFullURL %s |%v\n", lToken, err)
+		s.log.Error(err.Error())
 		if errors.Is(err, models.ErrLinkDeleted) {
 			http.Error(rw, err.Error(), http.StatusGone)
 			return
@@ -168,7 +178,7 @@ func (s *Server) getFullURL(rw http.ResponseWriter, req *http.Request) {
 
 	// возвращаем длинный url в поле Location
 	rw.Header().Set(headerLocation, longURL)
-	log.Printf("Заголовок возврата %s \n", rw.Header())
+	s.log.WithFields(logrus.Fields{"header": rw.Header()}).Debug("Заголовок возврата")
 
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
@@ -183,18 +193,20 @@ type Response struct {
 	ShortURL string `json:"result"`
 }
 
+// shortenJson принимает в теле запроса JSON объект с URL
+// и возвращает JSON объект с сокращенным токеном
 func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
 	var errToken error
 
-	log.Println("POST JSON")
+	s.log.Debug("POST JSON")
 	// чтение JSON объекта из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
 	//десериализация
 	requestJSON := Request{}
 	if err := decoder.Decode(&requestJSON); err != nil {
-		log.Printf("handlers|shortenJSON|%v\n", err)
+		s.log.Error(err.Error())
 		http.Error(rw, err.Error(), http.StatusBadRequest)
 		return
 	}
@@ -207,7 +219,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 		cookieValue = cookie.Value
 	}
 
-	fmt.Printf("Возвращены куки %s\n", cookie)
+	s.log.WithFields(logrus.Fields{"cookie": cookie})
 	//req.AddCookie(cookie)
 	http.SetCookie(rw, cookie)
 
@@ -220,7 +232,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 			// возвращаем ответ с кодом 409
 			rw.WriteHeader(http.StatusConflict)
 		} else {
-			log.Printf("handlers|shortenJSON|%s\n", errToken.Error())
+			s.log.Error(errToken.Error())
 			http.Error(rw, errToken.Error(), http.StatusInternalServerError)
 			return
 		}
@@ -234,7 +246,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	response := Response{
 		ShortURL: gToken,
 	}
-	log.Printf("short url %s\n", response.ShortURL)
+	s.log.WithFields(logrus.Fields{"short url": response.ShortURL})
 
 	// пишем в тело ответа закодированный в JSON объект
 	// который содержит сокращенный URL
@@ -260,22 +272,23 @@ type cookies struct {
 	URLs []*CookiesURL
 }
 
-func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
-	log.Println("Get all urls for user")
+// getUserURLs возвращает все URL, сокращенным пользвателем
+func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
+	s.log.Debug("Get all urls for user")
 	user, err := req.Cookie("User")
 	if err != nil {
-		log.Printf("handlers|getUserURLs|%v\n", err)
+		s.log.Error(err.Error())
 		http.Error(rw, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf("куки value %s\n", user.Value)
+	s.log.WithFields(logrus.Fields{"cookie value": user.Value})
 	links, err := s.service.GetAllURLS(req.Context(), user.Value)
 	if err != nil {
-		log.Printf("database|GetAllURLs|%v\n", err)
+		s.log.Error(err.Error())
 	}
 
 	if len(links) == 0 {
-		log.Printf("Не нашли сокращенных пользователем URL")
+		s.log.Info("Не нашли сокращенных пользователем URL")
 		rw.WriteHeader(http.StatusNoContent)
 		return
 	}
@@ -285,9 +298,10 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 		urls = append(urls, &CookiesURL{
 			ShortURL: short,
 			OrigURL:  long})
-		fmt.Printf("Возвращаемые url для текущего пользователя %s\n", &CookiesURL{
-			ShortURL: short,
-			OrigURL:  long})
+		s.log.WithFields(logrus.Fields{}).Info(
+			"Возвращаемые url для текущего пользователя %s\n", &CookiesURL{
+				ShortURL: short,
+				OrigURL:  long})
 	}
 
 	rw.Header().Set("Content-Type", contentTypeJSON)
@@ -303,6 +317,7 @@ func (s *Server) getUserURLs(rw http.ResponseWriter, req *http.Request) {
 	fmt.Fprint(rw, buf)
 }
 
+// PingConnection проверяет соединение с БД
 func (s *Server) PingConnection(rw http.ResponseWriter, req *http.Request) {
 	log.Println("Ping")
 	if s.service.Ping(req.Context()) != nil {

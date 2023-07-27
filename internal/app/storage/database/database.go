@@ -1,25 +1,32 @@
+// модуль database реализует хранение данных в БД
 package database
 
 import (
 	"context"
 	"errors"
-	"log"
 	"sync"
 
 	"example.com/shortener/internal/app/models"
+	"example.com/shortener/internal/app/service"
 	"example.com/shortener/internal/config"
 	"example.com/shortener/internal/config/utils"
 	"github.com/jackc/pgconn"
 	"github.com/jackc/pgerrcode"
 	"github.com/jackc/pgx/v4"
 	"github.com/jackc/pgx/v4/pgxpool"
+	"github.com/sirupsen/logrus"
 )
 
 type dbStorage struct {
-	config config.Config
-	//pgxConn *pgxpool.Conn
+	config  config.Config
 	pgxPool *pgxpool.Pool
+	log     *logrus.Logger
 }
+
+// проверка на имплементацию интерфейса
+var (
+	_ service.Storer = (*dbStorage)(nil)
+)
 
 var (
 	createSQL = `CREATE TABLE IF NOT EXISTS urlsDBTable(
@@ -37,30 +44,38 @@ var (
 	storage        dbStorage
 )
 
-func New(ctx context.Context, config config.Config) (*dbStorage, error) {
+func New(ctx context.Context, config config.Config, log *logrus.Logger) (*dbStorage, error) {
 	var err error
 	var pgxPool *pgxpool.Pool
 
-	pgxPool, err = InitTable(ctx, config.Database)
+	pgxPool, err = InitTable(ctx, config.Database, log)
 	if err != nil {
-		log.Println("Не учитываем таблицу бд")
+		log.Debug("Не учитываем таблицу бд")
 		return nil, err
 	}
 	storage = dbStorage{
 		config:  config,
 		pgxPool: pgxPool,
+		log:     log,
 	}
 
 	return &storage, nil
 }
 
-func (s *dbStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
+func (s *dbStorage) AddLink(
+	ctx context.Context,
+	sToken string,
+	longURL string,
+	user string) (string, error) {
 
-	log.Printf("Записываем в бд %s %s %s\n", sToken, longURL, user)
+	s.log.WithFields(logrus.Fields{"sToken": sToken,
+		"longURL": longURL,
+		"user":    user}).Debug("Записываем в бд")
+
 	// используем контекст запроса
 	shortURL, err := s.InsertLine(ctx, sToken, longURL, user)
 	if err != nil {
-		log.Println(err.Error())
+		s.log.Error(err.Error())
 		sToken = shortURL
 	}
 	return sToken, err
@@ -106,25 +121,30 @@ func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]s
 	return userLinks, nil
 }
 
-func InitTable(ctx context.Context, connString string) (*pgxpool.Pool, error) {
-	log.Println("Инициализация таблицы")
+func InitTable(ctx context.Context, connString string, log *logrus.Logger) (*pgxpool.Pool, error) {
+	log.Debug("Инициализация таблицы")
 
 	// открываем соединение с бд
 	pgxPool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
-		log.Printf("database|Init table|%v\n", err)
+		log.Error(err.Error())
 		return nil, err
 	}
 
 	if _, err = pgxPool.Exec(ctx, createSQL); err != nil {
-		log.Printf("database|Ошибка при создании таблицы|%v\n", err)
+		log.Error(err.Error())
 		return nil, err
 	}
 
 	return pgxPool, nil
 }
 
-func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL string, cookie string) (string, error) {
+func (s *dbStorage) InsertLine(
+	ctx context.Context,
+	shortURL string,
+	longURL string,
+	cookie string) (string, error) {
+
 	var pgxError *pgconn.PgError
 	pgxConn, err := s.pgxPool.Acquire(ctx)
 	if err != nil {
@@ -136,12 +156,12 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 	if err == nil {
 		rows := res.RowsAffected()
 		if rows > 0 {
-			log.Printf("Вставлено строк %d\n", rows)
+			s.log.WithFields(logrus.Fields{"rows": rows}).Debug("Вставлено строк")
 		}
 		return "", nil
 	}
 
-	log.Printf("database|Insert line|%s\n", err)
+	s.log.Error(err.Error())
 	if !errors.As(err, &pgxError) {
 		return "", err
 	}
@@ -157,9 +177,9 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 		if errSelect != nil {
 			return "", errSelect
 		}
-		log.Printf("Найденный короткий URL %s\n", link.ShortURL)
+		s.log.WithFields(logrus.Fields{"shortURL": link.ShortURL}).Debug("Найден короткий URL")
 
-		log.Println(pgxError.Code)
+		s.log.WithFields(logrus.Fields{"pgx error code": pgxError.Code})
 		if pgxError.Code == pgerrcode.UniqueViolation {
 			return link.ShortURL, models.ErrorAlreadyExist
 		} else {
@@ -176,7 +196,11 @@ func (s *dbStorage) InsertLine(ctx context.Context, shortURL string, longURL str
 }
 
 func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
-	log.Println("Batch delete")
+
+	if len(sTokens) == 0 {
+		return
+	}
+
 	batch := &pgx.Batch{}
 	for _, v := range sTokens {
 		batch.Queue(deleteSQL, v.Token, v.User)
@@ -185,10 +209,10 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 	defer br.Close()
 	comTag, err := br.Exec()
 	if err != nil {
-		log.Printf("database|Batch delete request error|%v\n", err)
+		s.log.Error(err.Error())
 	}
 
-	log.Printf("После удаления Изменено строк %d\n", comTag.RowsAffected())
+	s.log.WithFields(logrus.Fields{"changed rows": comTag.RowsAffected()}).Debug("После удаления Изменено строк")
 }
 
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
@@ -202,12 +226,13 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 		// проверяем, что в базе еще нет такого url
 		_, err := s.findErrorURL(ctx, batchValue.URL)
 		if err != nil {
-			log.Printf("database|Find error URL|%v\n", errStmt)
+			s.log.Error(errStmt.Error())
 			return nil, err
 		}
 
 		sToken := utils.GenRandToken(s.config.BaseURL)
-		log.Printf("Записываем в бд %s, %s \n", sToken, batchValue.URL)
+		s.log.WithFields(logrus.Fields{"sToken": sToken,
+			"URL": batchValue.URL}).Debug("Записываем в бд")
 		batch.Queue(insertSQL, sToken, batchValue.URL, cookie)
 
 		// формируем структуру для ответа
@@ -221,10 +246,10 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	defer br.Close()
 	_, err := br.Exec()
 	if err != nil {
-		log.Printf("database|Batch req error|%v\n", err)
+		s.log.Error(err.Error())
 	}
 
-	log.Printf("Структура ответа %s\n", response)
+	s.log.WithFields(logrus.Fields{"response": response}).Debug("Структура ответа")
 
 	return response, nil
 }
@@ -242,7 +267,7 @@ func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error
 		if err != nil {
 			return "", err
 		}
-		log.Printf("Найденный в бд короткий URL %s\n", link.ShortURL)
+		s.log.WithFields(logrus.Fields{"Short URL": link.ShortURL}).Debug("Найденный в бд короткий URL")
 		sToken = link.ShortURL
 		if sToken != "" {
 			break
@@ -255,13 +280,13 @@ func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error
 }
 
 func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
-	log.Println("Ищем длинный URL в бд")
+	s.log.Debug("Ищем длинный URL в бд")
 	var longURL string
 	var deleted bool
 
 	err := s.pgxPool.QueryRow(ctx, selectLongURL, shortURL).Scan(&longURL, &deleted)
 	if err != nil {
-		log.Println(err.Error())
+		s.log.Error(err.Error())
 		return "", models.ErrLinkNotFound
 	}
 	if deleted {

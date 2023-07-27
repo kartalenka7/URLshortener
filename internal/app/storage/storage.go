@@ -8,9 +8,10 @@ import (
 	"example.com/shortener/internal/app/storage/database"
 	"example.com/shortener/internal/app/storage/memory"
 	"example.com/shortener/internal/config"
+	"github.com/sirupsen/logrus"
 )
 
-func New(cfg config.Config) service.Storer {
+func New(cfg config.Config, log *logrus.Logger) service.Storer {
 	var storer service.Storer
 	var err error
 
@@ -21,7 +22,7 @@ func New(cfg config.Config) service.Storer {
 	defer cancel()
 	// создаем объект хранилища
 	if cfg.Database != "" {
-		storer, err = database.New(ctx, cfg) // бд хранилище
+		storer, err = database.New(ctx, cfg, log) // бд хранилище
 		if err != nil {
 			storer = memory.New(cfg)
 		}
