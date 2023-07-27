@@ -12,6 +12,7 @@ import (
 
 func gzipHandle(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		log.Println("gzip")
 		if !strings.Contains(r.Header.Get("Content-Encoding"), encodGzip) {
 			// если gzip не поддерживается, передаём управление
 			// дальше без изменений
@@ -63,7 +64,7 @@ func AddCookie(r *http.Request) error {
 func userAuth(next http.Handler) http.Handler {
 	log.Println("middleware")
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-
+		log.Println("Получаем куки")
 		// получаем куки
 		cookie, err := r.Cookie("User")
 		if err != nil {

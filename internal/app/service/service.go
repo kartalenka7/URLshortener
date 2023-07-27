@@ -3,6 +3,9 @@ package service
 import (
 	"context"
 	"log"
+	"strings"
+	"sync"
+	"time"
 
 	urlNet "net/url"
 
@@ -18,18 +21,86 @@ type Storer interface {
 	Ping(ctx context.Context) error
 	GetAllURLS(ctx context.Context, cookie string) (map[string]string, error)
 	ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error)
+	BatchDelete(ctx context.Context, sTokens []models.TokenUser)
 	Close() error
-
 	GetStorageLen() int
 }
+
+var once sync.Once
 
 type Service struct {
 	Config  config.Config
 	storage Storer
+	Once    *sync.Once
+	OutCh   chan string
+	userCh  chan string
 }
 
-func New(config config.Config, storage Storer) *Service {
-	return &Service{Config: config, storage: storage}
+func New(cfg config.Config, storage Storer) *Service {
+	service := &Service{
+		Config:  cfg,
+		storage: storage,
+		OutCh:   make(chan string, config.BatchSize),
+		userCh:  make(chan string),
+	}
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
+	go service.RecieveTokensFromChannel(ctx)
+	time.AfterFunc(60*time.Second, func() {
+		log.Println("Запускаем cancel")
+		cancel()
+	})
+
+	return service
+}
+
+func (s Service) AddDeletedTokens(sTokens []string, user string) {
+	replacer := strings.NewReplacer(`"`, ``, `[`, ``, `]`, ``)
+
+	log.Printf("Куки в AddDeletedTokens:%s\n", user)
+	s.userCh <- user
+	for _, token := range sTokens {
+		token = replacer.Replace(token)
+		sToken := s.GetLongToken(token)
+		log.Printf("Добавляем значение в канал %s", sToken)
+		s.OutCh <- sToken
+	}
+
+}
+
+var deletedTokens = make([]models.TokenUser, 0, config.BatchSize*2)
+
+func (s Service) RecieveTokensFromChannel(ctx context.Context) {
+	var user string
+	log.Println("Запустили канал")
+	ticker := time.NewTicker(500 * time.Millisecond)
+	defer ticker.Stop()
+	// считываем значения из канала, пока он не будет закрыт
+	for {
+		select {
+		case u := <-s.userCh:
+			user = u
+		case x := <-s.OutCh:
+			log.Printf("Куки в RecieveTokensFromChannel:%s\n", user)
+			deletedTokens = append(deletedTokens, models.TokenUser{
+				Token: x,
+				User:  user,
+			})
+			log.Printf("Приняли токенов из канала: %d\n", len(deletedTokens))
+			if len(deletedTokens) >= config.BatchSize {
+				log.Println(deletedTokens)
+				s.storage.BatchDelete(ctx, deletedTokens)
+				deletedTokens = deletedTokens[:0]
+			}
+		case <-ticker.C:
+			log.Println("Запуск по таймеру")
+			s.storage.BatchDelete(ctx, deletedTokens)
+			deletedTokens = deletedTokens[:0]
+
+		case <-ctx.Done():
+			log.Println("Отменился контекст")
+			return
+		}
+	}
 }
 
 func (s Service) GetLongToken(sToken string) string {
@@ -68,5 +139,7 @@ func (s Service) GetStorageLen() int {
 }
 
 func (s Service) Close() error {
+	close(s.OutCh)
+	close(s.userCh)
 	return s.storage.Close()
 }

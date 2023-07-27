@@ -32,4 +32,5 @@ vendor/
 .vscode
 
 test.http
+tests/main_test.go
 

@@ -73,6 +73,7 @@ func TestPOST(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
+			log.Println("------------POST test--------------")
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			storer, err = database.New(ctx, cfg)
@@ -88,11 +89,11 @@ func TestPOST(t *testing.T) {
 
 			var buf bytes.Buffer
 			zw := gzip.NewWriter(&buf)
-			_, _ = zw.Write([]byte("https://www.pinterest30.com"))
+			_, _ = zw.Write([]byte("https://www.pinterest50.com"))
 			_ = zw.Close()
 
 			data := url.Values{}
-			data.Set("url", "https://www.pinterest30.com")
+			data.Set("url", "https://www.pinterest50.com")
 
 			req, err := http.NewRequest(tt.method, ts.URL+tt.request, bytes.NewBufferString(buf.String()))
 			require.NoError(t, err)
@@ -141,10 +142,10 @@ func TestGET(t *testing.T) {
 	}{
 		{
 			name:    "GET positive test",
-			longURL: "https://www.pinterest31.com",
+			longURL: "https://www.pinterest54.com",
 			want: want{
 				statusCode: http.StatusTemporaryRedirect,
-				err:        "Get \"https://www.pinterest31.com\": Redirect",
+				err:        "Get \"https://www.pinterest54.com\": Redirect",
 			},
 			method: http.MethodGet,
 		},
@@ -152,6 +153,7 @@ func TestGET(t *testing.T) {
 
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
+			log.Println("------------GET test--------------")
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			storer, err = database.New(ctx, cfg)
@@ -227,6 +229,7 @@ func TestJSON(t *testing.T) {
 
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
+			log.Println("------------POST JSON test--------------")
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
 			storer, err = database.New(ctx, cfg)
@@ -254,7 +257,7 @@ func jsonRequest(t *testing.T, ts *httptest.Server, method, contentType, request
 	bodyStr := struct {
 		LongURL string `json:"url"`
 	}{
-		LongURL: "https://www.pinterest32.com",
+		LongURL: "https://www.pinterest55.com",
 	}
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)

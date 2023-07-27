@@ -20,5 +20,14 @@ type LinksData struct {
 	User     string `json:"user"`
 }
 
+// Структура, куда будем накапливать токены URLов, подлежащих удалению
+type TokenUser struct {
+	Token string
+	User  string
+}
+
+var DeletedTokens []TokenUser
+
 var ErrorAlreadyExist = errors.New("already exist")
 var ErrLinkNotFound = errors.New("link is not found")
+var ErrLinkDeleted = errors.New("link has been deleted")

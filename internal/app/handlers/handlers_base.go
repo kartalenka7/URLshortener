@@ -27,6 +27,8 @@ func NewRouter(service *service.Service) chi.Router {
 		// обработка сжатия gzip
 		r.Use(gzipHandle)
 		r.Post("/api/shorten/batch", serv.shortenBatch)
+		//удаление URL пользователем
+		r.Delete("/api/user/urls", serv.deleteURLs)
 		// сокращение URL в JSON формате
 		r.Post("/api/shorten", serv.shortenJSON)
 		// все URL пользователя, которые он сокращал

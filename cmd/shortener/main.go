@@ -22,6 +22,7 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
+	log.Printf("Конфигурация приложения %s\n", cfg)
 
 	// создаем объект хранилища
 	storer = storage.New(cfg)
