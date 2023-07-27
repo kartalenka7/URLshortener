@@ -24,10 +24,10 @@ func New(cfg config.Config, log *logrus.Logger) service.Storer {
 	if cfg.Database != "" {
 		storer, err = database.New(ctx, cfg, log) // бд хранилище
 		if err != nil {
-			storer = memory.New(cfg)
+			storer = memory.New(cfg, log)
 		}
 	} else {
-		storer = memory.New(cfg) // in-memory хранилище
+		storer = memory.New(cfg, log) // in-memory хранилище
 	}
 	return storer
 }

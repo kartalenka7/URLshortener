@@ -44,7 +44,7 @@ func TestStorage(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			//s := NewStorage(config.Config{File: tt.file})
 			log := logger.InitLog()
-			storer := memory.New(config.Config{File: tt.file})
+			storer := memory.New(config.Config{File: tt.file}, log)
 			s := service.New(config.Config{File: tt.file}, storer, log)
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()

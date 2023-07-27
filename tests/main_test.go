@@ -80,7 +80,7 @@ func TestPOST(t *testing.T) {
 			defer cancel()
 			storer, err = database.New(ctx, cfg, log)
 			if err != nil {
-				storer = memory.New(cfg)
+				storer = memory.New(cfg, log)
 			}
 			service := service.New(cfg, storer, log)
 			r := handlers.NewRouter(service, log)
@@ -162,7 +162,7 @@ func TestGET(t *testing.T) {
 			storer, err = database.New(ctx, cfg, log)
 			if err != nil {
 				log.Println("Используем хранилище in-memory")
-				storer = memory.New(cfg)
+				storer = memory.New(cfg, log)
 			}
 			service := service.New(cfg, storer, log)
 			// Добавить в хранилище URL, получить сгененированный токен
@@ -239,7 +239,7 @@ func TestJSON(t *testing.T) {
 			storer, err = database.New(ctx, cfg, log)
 			if err != nil {
 				log.Debug("Используем хранилище in-memory")
-				storer = memory.New(cfg)
+				storer = memory.New(cfg, log)
 			}
 			service := service.New(cfg, storer, log)
 			r := handlers.NewRouter(service, log)

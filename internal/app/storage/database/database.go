@@ -127,12 +127,12 @@ func InitTable(ctx context.Context, connString string, log *logrus.Logger) (*pgx
 	// открываем соединение с бд
 	pgxPool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
-		log.Error(err.Error())
+		log.Debug(err.Error())
 		return nil, err
 	}
 
 	if _, err = pgxPool.Exec(ctx, createSQL); err != nil {
-		log.Error(err.Error())
+		log.Debug(err.Error())
 		return nil, err
 	}
 
