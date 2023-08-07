@@ -26,9 +26,13 @@ func main() {
 		}
 	}
 
+	// добавляем стандартные анализаторы пакета x/analysis
 	mychecks = append(mychecks, printf.Analyzer)
 	mychecks = append(mychecks, shadow.Analyzer)
 	mychecks = append(mychecks, structtag.Analyzer)
+
+	// добавляем собственный анализатор
+	mychecks = append(mychecks, ExitCheckAnalyzer)
 
 	multichecker.Main(
 		mychecks...,
