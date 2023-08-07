@@ -52,10 +52,16 @@ func ExampleServer_GetUserURLs() {
 func ExampleServer_DeleteURLs() {
 	// инициализируем необходимые сущности
 	log := logger.InitLog()
-	cfg, err := config.GetConfig()
+	/*cfg, err := config.GetConfig()
 	if err != nil {
 		fmt.Println(err.Error())
 		return
+	}*/
+	cfg := config.Config{
+		BaseURL:  "http://localhost:8080/",
+		File:     "link.log",
+		Database: "user=habruser password=habr host=localhost port=5432 dbname=habrdb sslmode=disable",
+		Server:   "localhost:8080",
 	}
 	storage := storage.New(cfg, log)
 	serv := &Server{
