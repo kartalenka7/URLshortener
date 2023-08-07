@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"net/http"
 
 	"example.com/shortener/internal/app/handlers"
@@ -12,12 +13,27 @@ import (
 )
 
 var (
-	localAddr = "localhost:8080"
+	localAddr    = "localhost:8080"
+	buildVersion string
+	buildDate    string
+	buildCommit  string
 )
 
 func main() {
 	var storer service.Storer
 	var err error
+
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build version:%s\nBuild date:%s\nBuild commit:%s\n", buildVersion, buildDate, buildCommit)
+
 	log := logger.InitLog()
 
 	// получаем структуру с конфигурацией приложения
