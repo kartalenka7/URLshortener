@@ -5,6 +5,7 @@ import (
 	"errors"
 )
 
+// в BatchReq передаются данные для batch запросов
 type BatchReq struct {
 	CorrID string `json:"correlation_id"`
 	URL    string `json:"original_url"`
@@ -16,6 +17,7 @@ type BatchResp struct {
 	ShortURL string `json:"short_url"`
 }
 
+// в структуру LinksData парсим данные из sql запросов
 type LinksData struct {
 	ShortURL string `json:"short"`
 	LongURL  string `json:"long"`
@@ -28,8 +30,8 @@ type TokenUser struct {
 	User  string
 }
 
-var DeletedTokens []TokenUser
-
-var ErrorAlreadyExist = errors.New("already exist")
-var ErrLinkNotFound = errors.New("link is not found")
-var ErrLinkDeleted = errors.New("link has been deleted")
+var (
+	ErrorAlreadyExist = errors.New("already exist")
+	ErrLinkNotFound   = errors.New("link is not found")
+	ErrLinkDeleted    = errors.New("link has been deleted")
+)

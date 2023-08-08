@@ -11,6 +11,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// New возвращает объект хранилища
 func New(cfg config.Config, log *logrus.Logger) service.Storer {
 	var storer service.Storer
 	var err error

@@ -9,6 +9,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// InitLog возвращает объект logrus.Logger
 func InitLog() *logrus.Logger {
 	log := logrus.New()
 	log.SetReportCaller(true)

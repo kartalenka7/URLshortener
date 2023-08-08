@@ -17,6 +17,7 @@ import (
 	"github.com/sirupsen/logrus"
 )
 
+// dbStorage - структура, которая реализует все методы взаимодействия с бд
 type dbStorage struct {
 	config  config.Config
 	pgxPool *pgxpool.Pool
@@ -28,6 +29,7 @@ var (
 	_ service.Storer = (*dbStorage)(nil)
 )
 
+// запросы в бд
 var (
 	createSQL = `CREATE TABLE IF NOT EXISTS urlsDBTable(
 					short_url TEXT,
@@ -44,6 +46,7 @@ var (
 	storage        dbStorage
 )
 
+// New - конструктор для структуры dbStorage
 func New(ctx context.Context, config config.Config, log *logrus.Logger) (*dbStorage, error) {
 	var err error
 	var pgxPool *pgxpool.Pool
@@ -62,6 +65,7 @@ func New(ctx context.Context, config config.Config, log *logrus.Logger) (*dbStor
 	return &storage, nil
 }
 
+// AddLink записывает исходный URL и сокращенный токен в бд
 func (s *dbStorage) AddLink(
 	ctx context.Context,
 	sToken string,
@@ -81,6 +85,7 @@ func (s *dbStorage) AddLink(
 	return sToken, err
 }
 
+// GetLongURL выбирает из бд исходный URL
 func (s *dbStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 
 	longURL, err := s.SelectLink(ctx, sToken)
@@ -90,14 +95,17 @@ func (s *dbStorage) GetLongURL(ctx context.Context, sToken string) (string, erro
 	return longURL, nil
 }
 
+// метод заглушка
 func (s dbStorage) GetStorageLen() int {
 	return 0
 }
 
+// Ping возвращает ошибку, если не удалось установить связь с бд
 func (s *dbStorage) Ping(ctx context.Context) error {
 	return s.pgxPool.Ping(ctx)
 }
 
+// GetAllURLs выбирает все сокращенные токены и исходные URL конкретного пользователя
 func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	var link models.LinksData
 	userLinks := make(map[string]string)
@@ -121,6 +129,7 @@ func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]s
 	return userLinks, nil
 }
 
+// InitTable инициализирует пул соединений pgxpool и создает таблицы, если их еше нет в бд
 func InitTable(ctx context.Context, connString string, log *logrus.Logger) (*pgxpool.Pool, error) {
 	log.Debug("Инициализация таблицы")
 
@@ -139,6 +148,8 @@ func InitTable(ctx context.Context, connString string, log *logrus.Logger) (*pgx
 	return pgxPool, nil
 }
 
+// InsertLine добавляет строку с сокращенным токеном в бд,
+// если для исходного URL еще не была добавлена строка
 func (s *dbStorage) InsertLine(
 	ctx context.Context,
 	shortURL string,
@@ -195,6 +206,7 @@ func (s *dbStorage) InsertLine(
 	return "", err
 }
 
+// BatchDelete удаляет строки из бд с помощью Batch запроса
 func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
 
 	if len(sTokens) == 0 {
@@ -215,6 +227,7 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 	s.log.WithFields(logrus.Fields{"changed rows": comTag.RowsAffected()}).Debug("После удаления Изменено строк")
 }
 
+// ShortenBatch записывает новые токены в бд с помощью Batch запроса
 func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 	response := make([]models.BatchResp, 0, 100)
 
@@ -253,6 +266,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 	return response, nil
 }
 
+// findErrorURL проверяет, существует ли для URL сокращенный токен в бд
 func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error) {
 	var link models.LinksData
 	var sToken string
@@ -278,6 +292,7 @@ func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error
 	return sToken, nil
 }
 
+// SelectLink выбирает исходный URL из бд
 func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
 	s.log.Debug("Ищем длинный URL в бд")
 	var longURL string

@@ -21,6 +21,7 @@ type LinksData struct {
 
 var mutex sync.Mutex
 
+// MemoryStorage реализует методы для взаимодействия с хранилищем из файла
 type MemoryStorage struct {
 	linksMap   map[string]string
 	cookiesMap map[string]string
@@ -30,6 +31,7 @@ type MemoryStorage struct {
 	log        *logrus.Logger
 }
 
+// New - конструктор для MemoryStorage
 func New(config config.Config, log *logrus.Logger) *MemoryStorage {
 	memStore := &MemoryStorage{
 		linksMap:   make(map[string]string),
@@ -45,6 +47,7 @@ func New(config config.Config, log *logrus.Logger) *MemoryStorage {
 	return memStore
 }
 
+// AddLink записывает связку исходный URL- сокращенный токен в файл
 func (s MemoryStorage) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 	var err error
 	s.mu.Lock()
@@ -65,6 +68,7 @@ func (s MemoryStorage) AddLink(ctx context.Context, sToken string, longURL strin
 	return sToken, err
 }
 
+// GetLongURL возвращает исходный URL из файла
 func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, error) {
 	var err error
 
@@ -78,22 +82,27 @@ func (s MemoryStorage) GetLongURL(ctx context.Context, sToken string) (string, e
 	return longURL, err
 }
 
+// метод заглушка
 func (s MemoryStorage) GetStorageLen() int {
 	return len(s.linksMap)
 }
 
+// метод заглушка
 func (s MemoryStorage) Ping(ctx context.Context) error {
 	return errors.New("база данных не активна")
 }
 
+// метод заглушка
 func (s MemoryStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 	return nil, errors.New("база данных не активна")
 }
 
+// метод заглушка
 func (s MemoryStorage) Close() error {
 	return errors.New("база данных не активна")
 }
 
+// GetAllURLs возвращает все URL сокращенные пользователем из файла
 func (s MemoryStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	userLinks := make(map[string]string)
 	for short, user := range s.cookiesMap {
@@ -105,9 +114,8 @@ func (s MemoryStorage) GetAllURLS(ctx context.Context, cookie string) (map[strin
 	return userLinks, nil
 }
 
+// ReadFromFile читает данные из файла в мапу
 func (s MemoryStorage) ReadFromFile() {
-
-	//чтение из файла
 	s.log.Debug("Читаем из файла")
 	s.log.WithFields(logrus.Fields{"Имя файла": s.config.File})
 	consumer, err := NewConsumer(s.config.File)
@@ -133,6 +141,7 @@ func (s MemoryStorage) ReadFromFile() {
 
 }
 
+// WriteInFile реализует запись в файл
 func (s MemoryStorage) WriteInFile() {
 	if s.config.File == "" {
 		return
@@ -158,6 +167,7 @@ func (s MemoryStorage) WriteInFile() {
 	}
 }
 
+// BatchDelete ставит метки удаления на строки из мапы и записывает в файл
 func (s MemoryStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
 	s.log.Debug("Batch delete для in-memory")
 	s.ReadFromFile()

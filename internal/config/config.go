@@ -9,6 +9,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config структура с флагами конфигурации
 type Config struct {
 	BaseURL  string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
 	Server   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
@@ -25,6 +26,7 @@ var (
 	BatchSize = 10
 )
 
+// GetConfig возвращает флаги конфигурации
 func GetConfig() (Config, error) {
 	var cfg Config
 	var cfgFlag Config

@@ -41,6 +41,7 @@ type Service struct {
 	log     *logrus.Logger
 }
 
+// New - конструктор для пакета service
 func New(cfg config.Config, storage Storer, log *logrus.Logger) *Service {
 	service := &Service{
 		Config:  cfg,
@@ -114,6 +115,7 @@ func (s Service) RecieveTokensFromChannel(ctx context.Context) {
 	}
 }
 
+// GetLongToken склеивает BaseURL с токеном
 func (s Service) GetLongToken(sToken string) string {
 	longToken := s.Config.BaseURL + sToken
 	_, urlParseErr := urlNet.Parse(longToken)
@@ -124,31 +126,38 @@ func (s Service) GetLongToken(sToken string) string {
 	return longToken
 }
 
+// AddLink сохраняет сокращенный URL в хранилище
 func (s Service) AddLink(ctx context.Context, sToken string, longURL string, user string) (string, error) {
 	token := utils.GenRandToken(s.Config.BaseURL)
 	return s.storage.AddLink(ctx, token, longURL, user)
 }
 
+// GetLongURL возвращает исходный URL из хранилища
 func (s Service) GetLongURL(ctx context.Context, sToken string) (string, error) {
 	return s.storage.GetLongURL(ctx, sToken)
 }
 
+// GetAllURLs возвращает все URL пользователя
 func (s Service) GetAllURLS(ctx context.Context, cookie string) (map[string]string, error) {
 	return s.storage.GetAllURLS(ctx, cookie)
 }
 
+// ShortenBatch обрабатывает URL, переданные в виде JSON объектов
 func (s Service) ShortenBatch(ctx context.Context, batchReq []models.BatchReq, cookie string) ([]models.BatchResp, error) {
 	return s.storage.ShortenBatch(ctx, batchReq, cookie)
 }
 
+// Ping проверяет соединение с БД
 func (s Service) Ping(ctx context.Context) error {
 	return s.storage.Ping(ctx)
 }
 
+// Проверяем, что в мапе с URL есть записи
 func (s Service) GetStorageLen() int {
 	return s.storage.GetStorageLen()
 }
 
+// Close - закрывает каналы
 func (s Service) Close() error {
 	close(s.OutCh)
 	close(s.userCh)

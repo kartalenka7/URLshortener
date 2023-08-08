@@ -26,6 +26,7 @@ var (
 	encodGzip       = "gzip"
 )
 
+// DeleteURLs принимает строку с токенами и запускает горутину на удаление записей
 func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 	var sTokens []string
 	s.log.Debug("delete URLs")
@@ -185,10 +186,12 @@ func (s *Server) GetFullURL(rw http.ResponseWriter, req *http.Request) {
 
 }
 
+// Request - структура данных для запроса в формате JSON
 type Request struct {
 	LongURL string `json:"url"`
 }
 
+// Response - структура для ответа в формате JSON
 type Response struct {
 	ShortURL string `json:"result"`
 }
@@ -254,8 +257,8 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 
 }
 
+// ToJSON записывает результат JSON-сериализации в хранилище байт
 func (r *Response) ToJSON() *bytes.Buffer {
-	// записываем результат JSON-сериализации в хранилище байт
 	buf := bytes.NewBuffer([]byte{})
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
@@ -263,13 +266,10 @@ func (r *Response) ToJSON() *bytes.Buffer {
 	return buf
 }
 
+// в CookiesURL записываем все URL, скоращенные пользователем
 type CookiesURL struct {
 	ShortURL string `json:"short_url"`
 	OrigURL  string `json:"original_url"`
-}
-
-type cookies struct {
-	URLs []*CookiesURL
 }
 
 // getUserURLs возвращает все URL, сокращенным пользвателем
