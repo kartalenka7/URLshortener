@@ -30,6 +30,7 @@ type TokenUser struct {
 	User  string
 }
 
+// Сообщения об ошибках
 var (
 	ErrorAlreadyExist = errors.New("already exist")
 	ErrLinkNotFound   = errors.New("link is not found")

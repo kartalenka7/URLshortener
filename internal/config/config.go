@@ -17,6 +17,7 @@ type Config struct {
 	Database string `env:"DATABASE_DSN"`
 }
 
+// Значения переменных конфигурации по умолчанию
 var (
 	localAddr = "localhost:8080"
 	filename  = "link.log"

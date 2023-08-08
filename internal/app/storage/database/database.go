@@ -309,6 +309,7 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 	return longURL, nil
 }
 
+// Close закрывает пул соединений с бд
 func (s *dbStorage) Close() error {
 	s.pgxPool.Close()
 	return nil
