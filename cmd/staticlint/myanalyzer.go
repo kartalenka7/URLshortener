@@ -1,4 +1,4 @@
-package multichecker
+package main
 
 import (
 	"go/ast"
@@ -6,7 +6,7 @@ import (
 	"golang.org/x/tools/go/analysis"
 )
 
-// ExitCheckAnalyzer - анализатор, котрорый проверяет, что в функции main() нет вызова os.Exit
+// ExitCheckAnalyzer - анализатор, который проверяет, что в функции main() нет вызова os.Exit
 var ExitCheckAnalyzer = &analysis.Analyzer{
 	Name: "exitcheck",
 	Doc:  "check for os.Exit from main",

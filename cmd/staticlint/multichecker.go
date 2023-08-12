@@ -1,6 +1,16 @@
-package multichecker
+// модуль staticlint собирается в multichecker, состоящий из:
+// - статических анализаторов пакета golang.org/x/tools/go/analysis/passes,
+// - анализаторов SA* пакета staticcheck.io
+// - анализатора exitcheck, который проверяет, что в функции main() нет вызова os.Exit
+// Для сборки multichecker вызвать команду go1.19.12 build .
+// Запуск командой ./staticlint.exe ./...
+// по умолчанию запускаются все анализаторы, настроить можно с помощью флагов:
+// выбор отдельных анализаторов: -ИМЯ_АНАЛИЗАТОРА
+// исключение анализатора из проверки: -ИМЯ_АНАЛИЗАТОРА=false
+package main
 
 import (
+	"fmt"
 	"strings"
 
 	"golang.org/x/tools/go/analysis"
@@ -11,6 +21,7 @@ import (
 	"honnef.co/go/tools/staticcheck"
 )
 
+// в методе main добавляем все необходимые анализаторы в multichecker.main
 func main() {
 	checks := map[string]bool{
 		"ST1019": true,
@@ -33,6 +44,8 @@ func main() {
 
 	// добавляем собственный анализатор
 	mychecks = append(mychecks, ExitCheckAnalyzer)
+
+	fmt.Println(mychecks)
 
 	multichecker.Main(
 		mychecks...,

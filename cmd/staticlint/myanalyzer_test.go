@@ -1,4 +1,4 @@
-package multichecker
+package main
 
 import (
 	"testing"
