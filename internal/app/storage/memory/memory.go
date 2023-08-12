@@ -118,6 +118,8 @@ func (s MemoryStorage) GetAllURLS(ctx context.Context, cookie string) (map[strin
 func (s MemoryStorage) ReadFromFile() {
 	s.log.Debug("Читаем из файла")
 	s.log.WithFields(logrus.Fields{"Имя файла": s.config.File})
+	s.mu.Lock()
+	defer s.mu.Unlock()
 	consumer, err := NewConsumer(s.config.File)
 	if err != nil {
 		s.log.Fatal(err.Error())
