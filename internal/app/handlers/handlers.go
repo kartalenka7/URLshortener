@@ -29,7 +29,7 @@ var (
 // DeleteURLs принимает строку с токенами и запускает горутину на удаление записей
 func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 	var sTokens []string
-	s.log.Debug("delete URLs")
+	s.log.Info("delete URLs")
 	// читаем строку в формате [ "a", "b", "c", "d", ...]
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -60,7 +60,7 @@ func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 func (s *Server) ShortenURL(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
 	var errToken error
-	s.log.Debug("shorten URL")
+	s.log.Info("shorten URL")
 
 	// Читаем строку URL из body
 	b, err := io.ReadAll(req.Body)
@@ -111,7 +111,7 @@ func (s *Server) ShortenURL(rw http.ResponseWriter, req *http.Request) {
 // возвращает результат с сокращенными токенами также в виде JSON объекта
 func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 
-	s.log.Debug("Shorten Batch")
+	s.log.Info("Shorten Batch")
 	// чтение JSON объектов из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
@@ -151,14 +151,14 @@ func (s *Server) shortenBatch(rw http.ResponseWriter, req *http.Request) {
 	encoder := json.NewEncoder(buf)
 	encoder.SetEscapeHTML(false)
 	encoder.Encode(response)
-	s.log.WithFields(logrus.Fields{"response": response}).Debug("Ответ, закодированный в JSON")
+	s.log.WithFields(logrus.Fields{"response": response}).Info("Ответ, закодированный в JSON")
 	fmt.Fprint(rw, buf)
 }
 
 // GetFullURL - обработчик запроса GET /{id}, где id - сокращенный токен
 // возвращает исходный URL
 func (s *Server) GetFullURL(rw http.ResponseWriter, req *http.Request) {
-	s.log.Debug("Get full url")
+	s.log.Info("Get full url")
 
 	//получаем сокращенный url из параметра
 	shortURL := chi.URLParam(req, paramID)
@@ -179,7 +179,7 @@ func (s *Server) GetFullURL(rw http.ResponseWriter, req *http.Request) {
 
 	// возвращаем длинный url в поле Location
 	rw.Header().Set(headerLocation, longURL)
-	s.log.WithFields(logrus.Fields{"header": rw.Header()}).Debug("Заголовок возврата")
+	s.log.WithFields(logrus.Fields{"header": rw.Header()}).Info("Заголовок возврата")
 
 	// возвращаем ответ с кодом 307
 	rw.WriteHeader(http.StatusTemporaryRedirect)
@@ -202,7 +202,7 @@ func (s *Server) shortenJSON(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
 	var errToken error
 
-	s.log.Debug("POST JSON")
+	s.log.Info("POST JSON")
 	// чтение JSON объекта из body
 	decoder := json.NewDecoder(req.Body)
 	defer req.Body.Close()
@@ -274,7 +274,7 @@ type CookiesURL struct {
 
 // getUserURLs возвращает все URL, сокращенным пользвателем
 func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
-	s.log.Debug("Get all urls for user")
+	s.log.Info("Get all urls for user")
 	user, err := req.Cookie("User")
 	if err != nil {
 		s.log.Error(err.Error())
@@ -288,7 +288,7 @@ func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(links) == 0 {
-		s.log.Debug("Не нашли сокращенных пользователем URL")
+		s.log.Info("Не нашли сокращенных пользователем URL")
 		rw.WriteHeader(http.StatusNoContent)
 		return
 	}

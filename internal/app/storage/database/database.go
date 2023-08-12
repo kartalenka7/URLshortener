@@ -53,7 +53,7 @@ func New(ctx context.Context, config config.Config, log *logrus.Logger) (*dbStor
 
 	pgxPool, err = InitTable(ctx, config.Database, log)
 	if err != nil {
-		log.Debug("Не учитываем таблицу бд")
+		log.Info("Не учитываем таблицу бд")
 		return nil, err
 	}
 	storage = dbStorage{
@@ -74,7 +74,7 @@ func (s *dbStorage) AddLink(
 
 	s.log.WithFields(logrus.Fields{"sToken": sToken,
 		"longURL": longURL,
-		"user":    user}).Debug("Записываем в бд")
+		"user":    user}).Info("Записываем в бд")
 
 	// используем контекст запроса
 	shortURL, err := s.InsertLine(ctx, sToken, longURL, user)
@@ -131,17 +131,17 @@ func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]s
 
 // InitTable инициализирует пул соединений pgxpool и создает таблицы, если их еше нет в бд
 func InitTable(ctx context.Context, connString string, log *logrus.Logger) (*pgxpool.Pool, error) {
-	log.Debug("Инициализация таблицы")
+	log.Info("Инициализация таблицы")
 
 	// открываем соединение с бд
 	pgxPool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
-		log.Debug(err.Error())
+		log.Info(err.Error())
 		return nil, err
 	}
 
 	if _, err = pgxPool.Exec(ctx, createSQL); err != nil {
-		log.Debug(err.Error())
+		log.Info(err.Error())
 		return nil, err
 	}
 
@@ -167,7 +167,7 @@ func (s *dbStorage) InsertLine(
 	if err == nil {
 		rows := res.RowsAffected()
 		if rows > 0 {
-			s.log.WithFields(logrus.Fields{"rows": rows}).Debug("Вставлено строк")
+			s.log.WithFields(logrus.Fields{"rows": rows}).Info("Вставлено строк")
 		}
 		return "", nil
 	}
@@ -188,7 +188,7 @@ func (s *dbStorage) InsertLine(
 		if errSelect != nil {
 			return "", errSelect
 		}
-		s.log.WithFields(logrus.Fields{"shortURL": link.ShortURL}).Debug("Найден короткий URL")
+		s.log.WithFields(logrus.Fields{"shortURL": link.ShortURL}).Info("Найден короткий URL")
 
 		s.log.WithFields(logrus.Fields{"pgx error code": pgxError.Code})
 		if pgxError.Code == pgerrcode.UniqueViolation {
@@ -224,7 +224,7 @@ func (s dbStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) 
 		s.log.Error(err.Error())
 	}
 
-	s.log.WithFields(logrus.Fields{"changed rows": comTag.RowsAffected()}).Debug("После удаления Изменено строк")
+	s.log.WithFields(logrus.Fields{"changed rows": comTag.RowsAffected()}).Info("После удаления Изменено строк")
 }
 
 // ShortenBatch записывает новые токены в бд с помощью Batch запроса
@@ -244,7 +244,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 
 		sToken := utils.GenRandToken(s.config.BaseURL)
 		s.log.WithFields(logrus.Fields{"sToken": sToken,
-			"URL": batchValue.URL}).Debug("Записываем в бд")
+			"URL": batchValue.URL}).Info("Записываем в бд")
 		batch.Queue(insertSQL, sToken, batchValue.URL, cookie)
 
 		// формируем структуру для ответа
@@ -261,7 +261,7 @@ func (s dbStorage) ShortenBatch(ctx context.Context, batchReq []models.BatchReq,
 		s.log.Error(err.Error())
 	}
 
-	s.log.WithFields(logrus.Fields{"response": response}).Debug("Структура ответа")
+	s.log.WithFields(logrus.Fields{"response": response}).Info("Структура ответа")
 
 	return response, nil
 }
@@ -280,7 +280,7 @@ func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error
 		if err != nil {
 			return "", err
 		}
-		s.log.WithFields(logrus.Fields{"Short URL": link.ShortURL}).Debug("Найденный в бд короткий URL")
+		s.log.WithFields(logrus.Fields{"Short URL": link.ShortURL}).Info("Найденный в бд короткий URL")
 		sToken = link.ShortURL
 		if sToken != "" {
 			break
@@ -294,7 +294,7 @@ func (s *dbStorage) findErrorURL(ctx context.Context, URL string) (string, error
 
 // SelectLink выбирает исходный URL из бд
 func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, error) {
-	s.log.Debug("Ищем длинный URL в бд")
+	s.log.Info("Ищем длинный URL в бд")
 	var longURL string
 	var deleted bool
 

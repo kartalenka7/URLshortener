@@ -55,7 +55,7 @@ func (s MemoryStorage) AddLink(ctx context.Context, sToken string, longURL strin
 
 	_, ok := s.linksMap[sToken]
 	if ok {
-		s.log.Debug("link already exists")
+		s.log.Info("link already exists")
 		return "", errors.New("link already exists")
 	}
 
@@ -116,7 +116,7 @@ func (s MemoryStorage) GetAllURLS(ctx context.Context, cookie string) (map[strin
 
 // ReadFromFile читает данные из файла в мапу
 func (s MemoryStorage) ReadFromFile() {
-	s.log.Debug("Читаем из файла")
+	s.log.Info("Читаем из файла")
 	s.log.WithFields(logrus.Fields{"Имя файла": s.config.File})
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -129,7 +129,7 @@ func (s MemoryStorage) ReadFromFile() {
 	for {
 		readlinks, err := consumer.ReadLinks()
 		if err != nil {
-			s.log.Debug(err.Error())
+			s.log.Info(err.Error())
 			break
 		}
 		_, ok := s.linksMap[readlinks.ShortURL]
@@ -153,7 +153,7 @@ func (s MemoryStorage) WriteInFile() {
 		s.log.Fatal(err.Error())
 	}
 	defer producer.Close()
-	s.log.Debug("Записываем в файл")
+	s.log.Info("Записываем в файл")
 	s.log.WithFields(logrus.Fields{"Имя файла %s": s.config.File})
 
 	for short, long := range s.linksMap {
@@ -171,7 +171,7 @@ func (s MemoryStorage) WriteInFile() {
 
 // BatchDelete ставит метки удаления на строки из мапы и записывает в файл
 func (s MemoryStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
-	s.log.Debug("Batch delete для in-memory")
+	s.log.Info("Batch delete для in-memory")
 	s.ReadFromFile()
 	for _, v := range sTokens {
 		user, ok := s.cookiesMap[v.Token]
