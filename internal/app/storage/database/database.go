@@ -53,7 +53,7 @@ func New(ctx context.Context, config config.Config, log *logrus.Logger) (*dbStor
 
 	pgxPool, err = InitTable(ctx, config.Database, log)
 	if err != nil {
-		log.Info("Не учитываем таблицу бд")
+		log.Debug("Не учитываем таблицу бд")
 		return nil, err
 	}
 	storage = dbStorage{
@@ -131,17 +131,17 @@ func (s *dbStorage) GetAllURLS(ctx context.Context, cookie string) (map[string]s
 
 // InitTable инициализирует пул соединений pgxpool и создает таблицы, если их еше нет в бд
 func InitTable(ctx context.Context, connString string, log *logrus.Logger) (*pgxpool.Pool, error) {
-	log.Info("Инициализация таблицы")
+	log.Debug("Инициализация таблицы")
 
 	// открываем соединение с бд
 	pgxPool, err := pgxpool.Connect(ctx, connString)
 	if err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 		return nil, err
 	}
 
 	if _, err = pgxPool.Exec(ctx, createSQL); err != nil {
-		log.Info(err.Error())
+		log.Debug(err.Error())
 		return nil, err
 	}
 

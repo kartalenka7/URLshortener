@@ -29,7 +29,7 @@ var (
 // DeleteURLs принимает строку с токенами и запускает горутину на удаление записей
 func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 	var sTokens []string
-	s.log.Info("delete URLs")
+	s.log.Debug("delete URLs")
 	// читаем строку в формате [ "a", "b", "c", "d", ...]
 	b, err := io.ReadAll(req.Body)
 	defer req.Body.Close()
@@ -274,7 +274,7 @@ type CookiesURL struct {
 
 // getUserURLs возвращает все URL, сокращенным пользвателем
 func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
-	s.log.Info("Get all urls for user")
+	s.log.Debug("Get all urls for user")
 	user, err := req.Cookie("User")
 	if err != nil {
 		s.log.Error(err.Error())
@@ -288,7 +288,7 @@ func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
 	}
 
 	if len(links) == 0 {
-		s.log.Info("Не нашли сокращенных пользователем URL")
+		s.log.Debug("Не нашли сокращенных пользователем URL")
 		rw.WriteHeader(http.StatusNoContent)
 		return
 	}

@@ -116,7 +116,7 @@ func (s MemoryStorage) GetAllURLS(ctx context.Context, cookie string) (map[strin
 
 // ReadFromFile читает данные из файла в мапу
 func (s MemoryStorage) ReadFromFile() {
-	s.log.Info("Читаем из файла")
+	s.log.Debug("Читаем из файла")
 	s.log.WithFields(logrus.Fields{"Имя файла": s.config.File})
 	s.mu.Lock()
 	defer s.mu.Unlock()
@@ -129,7 +129,7 @@ func (s MemoryStorage) ReadFromFile() {
 	for {
 		readlinks, err := consumer.ReadLinks()
 		if err != nil {
-			s.log.Info(err.Error())
+			s.log.Debug(err.Error())
 			break
 		}
 		_, ok := s.linksMap[readlinks.ShortURL]
