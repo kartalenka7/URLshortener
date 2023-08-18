@@ -115,6 +115,7 @@ func ReadCookies(cookie http.Cookie) error {
 
 }
 
+// GenerateTSL генерирует сертификат x.509 и RSA приватный ключ
 func GenerateCertTSL(log *logrus.Logger) error {
 	// создаем шаблон сертификата
 	cert := &x509.Certificate{
@@ -147,7 +148,10 @@ func GenerateCertTSL(log *logrus.Logger) error {
 	// создаём сертификат x.509
 	certBytes, err := x509.CreateCertificate(crypto.Reader, cert, cert,
 		&privateKey.PublicKey, privateKey)
-
+	if err != nil {
+		log.Error(err.Error())
+		return err
+	}
 	// кодируем ключ и сертификат в формат REM, который используется
 	// для хранения и обмена криптографическими ключами
 
