@@ -8,6 +8,7 @@ import (
 	"example.com/shortener/internal/app/service"
 	"example.com/shortener/internal/app/storage"
 	"example.com/shortener/internal/config"
+	"example.com/shortener/internal/config/utils"
 	"example.com/shortener/internal/logger"
 	"github.com/sirupsen/logrus"
 )
@@ -50,7 +51,15 @@ func main() {
 	router := handlers.NewRouter(service, log)
 
 	log.WithFields(logrus.Fields{"server": cfg.Server})
-	log.Fatal(http.ListenAndServe(cfg.Server, router))
+	if cfg.HTTPS == "" {
+		log.Fatal(http.ListenAndServe(cfg.Server, router))
+	} else {
+		// включение HTTPS
+		err = utils.GenerateCertTSL(log)
+		if err == nil {
+			log.Fatal(http.ListenAndServeTLS(cfg.Server, `cert.pem`, `key.pem`, router))
+		}
+	}
 
 	err = service.Close()
 	if err != nil {

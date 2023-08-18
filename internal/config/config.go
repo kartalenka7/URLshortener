@@ -15,6 +15,7 @@ type Config struct {
 	Server   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
 	File     string `env:"FILE_STORAGE_PATH"`
 	Database string `env:"DATABASE_DSN"`
+	HTTPS    string `env:"ENABLE_HTTPS"`
 }
 
 // Значения переменных конфигурации по умолчанию
@@ -48,10 +49,11 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
 
 	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
+
+	flag.StringVar(&cfgFlag.HTTPS, "s", "", "Enable HTTPS")
 	flag.Parse()
 
 	log.Printf("Флаги командной строки: %s\n", cfgFlag)
-	log.Printf("Переменные конфигурации: %s\n", &cfg)
 
 	if cfg.Server == "" || cfg.Server == localAddr {
 		cfg.Server = cfgFlag.Server
@@ -68,5 +70,12 @@ func GetConfig() (Config, error) {
 	if cfg.Database == "" || cfg.Database == database {
 		cfg.Database = cfgFlag.Database
 	}
+
+	if cfg.HTTPS == "" {
+		cfg.HTTPS = cfgFlag.HTTPS
+	}
+
+	log.Printf("Переменные конфигурации: %s\n", &cfg)
+
 	return cfg, err
 }
