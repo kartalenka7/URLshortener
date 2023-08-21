@@ -24,6 +24,7 @@ import (
 	"example.com/shortener/internal/app/storage/database"
 	memory "example.com/shortener/internal/app/storage/memory"
 	"example.com/shortener/internal/config"
+	"example.com/shortener/internal/logger"
 
 	"net/url"
 
@@ -74,14 +75,15 @@ func TestPOST(t *testing.T) {
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			log.Println("------------POST test--------------")
+			log := logger.InitLog()
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			storer, err = database.New(ctx, cfg)
+			storer, err = database.New(ctx, cfg, log)
 			if err != nil {
-				storer = memory.New(cfg)
+				storer = memory.New(cfg, log)
 			}
-			service := service.New(cfg, storer)
-			r := handlers.NewRouter(service)
+			service := service.New(cfg, storer, log)
+			r := handlers.NewRouter(service, log)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -154,21 +156,22 @@ func TestGET(t *testing.T) {
 	for _, tt := range testsGet {
 		t.Run(tt.name, func(t *testing.T) {
 			log.Println("------------GET test--------------")
+			log := logger.InitLog()
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			storer, err = database.New(ctx, cfg)
+			storer, err = database.New(ctx, cfg, log)
 			if err != nil {
 				log.Println("Используем хранилище in-memory")
-				storer = memory.New(cfg)
+				storer = memory.New(cfg, log)
 			}
-			service := service.New(cfg, storer)
+			service := service.New(cfg, storer, log)
 			// Добавить в хранилище URL, получить сгененированный токен
 			token := utils.GenRandToken("http://localhost:8080/")
 			gToken, err := service.AddLink(ctx, token, tt.longURL, "")
 			sToken := strings.Replace(gToken, cfg.BaseURL, "", 1)
 			assert.NoError(t, err)
 
-			r := handlers.NewRouter(service)
+			r := handlers.NewRouter(service, log)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 
@@ -189,7 +192,7 @@ func TestGET(t *testing.T) {
 			resp, err := client.Do(req)
 			resp.Body.Close()
 
-			log.Println("After 2st request:")
+			log.Debug("After 2st request:")
 			for _, cookie := range jar.Cookies(req.URL) {
 				log.Printf("куки  %s: %s\n", cookie.Name, cookie.Value)
 			}
@@ -230,15 +233,16 @@ func TestJSON(t *testing.T) {
 	for _, tt := range testsPost {
 		t.Run(tt.name, func(t *testing.T) {
 			log.Println("------------POST JSON test--------------")
+			log := logger.InitLog()
 			ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 			defer cancel()
-			storer, err = database.New(ctx, cfg)
+			storer, err = database.New(ctx, cfg, log)
 			if err != nil {
-				log.Println("Используем хранилище in-memory")
-				storer = memory.New(cfg)
+				log.Debug("Используем хранилище in-memory")
+				storer = memory.New(cfg, log)
 			}
-			service := service.New(cfg, storer)
-			r := handlers.NewRouter(service)
+			service := service.New(cfg, storer, log)
+			r := handlers.NewRouter(service, log)
 			ts := httptest.NewServer(r)
 			defer ts.Close()
 

@@ -6,12 +6,12 @@ import (
 )
 
 type producer struct {
-	file    *os.File // файл для записи
+	file    *os.File
 	encoder *json.Encoder
 }
 
+// NewProducer открывает файл для записи
 func NewProducer(filename string) (*producer, error) {
-	// открываем файл для записи в конец
 	file, err := os.OpenFile(filename, os.O_WRONLY|os.O_CREATE|os.O_APPEND, 0664)
 	if err != nil {
 		return nil, err
@@ -23,11 +23,12 @@ func NewProducer(filename string) (*producer, error) {
 	}, nil
 }
 
+// Close закрывает файл
 func (p *producer) Close() error {
-	// закрываем файл
 	return p.file.Close()
 }
 
+// WriteLinks декодирует данные структуры LinksData в json объект и записывает в файл
 func (p *producer) WriteLinks(links *LinksData) error {
 	return p.encoder.Encode(&links)
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/caarlos0/env/v6"
 )
 
+// Config структура с флагами конфигурации
 type Config struct {
 	BaseURL  string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
 	Server   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
@@ -16,6 +17,7 @@ type Config struct {
 	Database string `env:"DATABASE_DSN"`
 }
 
+// Значения переменных конфигурации по умолчанию
 var (
 	localAddr = "localhost:8080"
 	filename  = "link.log"
@@ -25,11 +27,12 @@ var (
 	BatchSize = 10
 )
 
+// GetConfig возвращает флаги конфигурации
 func GetConfig() (Config, error) {
 	var cfg Config
 	var cfgFlag Config
 	// Парсим переменные окружения
-	fmt.Println("Parse")
+	log.Println("Parse")
 	err := env.Parse(&cfg)
 	if err != nil {
 		fmt.Printf("ошибка %s", err.Error())

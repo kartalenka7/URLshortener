@@ -23,7 +23,7 @@ var (
 
 const letterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ"
 
-// Генерирование короткой ссылки
+// RandStringBytes генерирует короткий токен
 func RandStringBytes(n int) string {
 	rand.Seed(time.Now().UnixNano())
 
@@ -34,6 +34,7 @@ func RandStringBytes(n int) string {
 	return string(link)
 }
 
+// GenRandToken возваращает сокращенный URL
 func GenRandToken(baseURL string) string {
 	gToken := RandStringBytes(10)
 	log.Println(gToken)
@@ -46,8 +47,8 @@ func GenRandToken(baseURL string) string {
 	return sToken
 }
 
+// generateUserToken генерирует криптостойкий слайс случайных байт
 func generateUserToken(len int) (string, error) {
-	// сгенерировать криптостойкий слайс случайных байт
 	b := make([]byte, len)
 	_, err := crypto.Read(b)
 	if err != nil {
@@ -60,6 +61,7 @@ func generateUserToken(len int) (string, error) {
 	return UserToken, nil
 }
 
+// WriteCookies формирует cookie для пользователя
 func WriteCookies() (http.Cookie, error) {
 	var err error
 	cookie := http.Cookie{
@@ -81,6 +83,7 @@ func WriteCookies() (http.Cookie, error) {
 	return cookie, nil
 }
 
+// ReadCookies проверяет hmac подпись в cookie
 func ReadCookies(cookie http.Cookie) error {
 	signedValue, err := base64.URLEncoding.DecodeString(cookie.Value)
 	if err != nil {
