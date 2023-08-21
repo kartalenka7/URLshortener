@@ -1,8 +1,10 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"log"
+	"os"
 
 	"flag"
 
@@ -11,11 +13,12 @@ import (
 
 // Config структура с флагами конфигурации
 type Config struct {
-	BaseURL  string `env:"BASE_URL" envDefault:"http://localhost:8080/"`
-	Server   string `env:"SERVER_ADDRESS" envDefault:"localhost:8080"`
-	File     string `env:"FILE_STORAGE_PATH"`
-	Database string `env:"DATABASE_DSN"`
-	HTTPS    string `env:"ENABLE_HTTPS"`
+	BaseURL    string `env:"BASE_URL" envDefault:"http://localhost:8080/" json:"base_url"`
+	Server     string `env:"SERVER_ADDRESS" envDefault:"localhost:8080" json:"server_address"`
+	File       string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
+	Database   string `env:"DATABASE_DSN" json:"database_dsn"`
+	HTTPS      string `env:"ENABLE_HTTPS" json:"enable_https"`
+	ConfigFile string `env:"CONFIG"`
 }
 
 // Значения переменных конфигурации по умолчанию
@@ -51,6 +54,8 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
 
 	flag.StringVar(&cfgFlag.HTTPS, "s", "", "Enable HTTPS")
+
+	flag.StringVar(&cfgFlag.ConfigFile, "c", "", "Enable HTTPS")
 	flag.Parse()
 
 	log.Printf("Флаги командной строки: %s\n", cfgFlag)
@@ -75,7 +80,54 @@ func GetConfig() (Config, error) {
 		cfg.HTTPS = cfgFlag.HTTPS
 	}
 
+	if cfg.ConfigFile == "" {
+		cfg.ConfigFile = cfgFlag.ConfigFile
+	}
+
+	ConfigFile, err := ReadConfigFile(cfg.ConfigFile)
+	if err != nil {
+		log.Println(err.Error())
+	}
+
+	if cfg.Server == "" {
+		cfg.Server = ConfigFile.Server
+	}
+
+	if cfg.File == "" {
+		cfg.File = ConfigFile.File
+	}
+
+	if cfg.BaseURL == "" {
+		cfg.BaseURL = ConfigFile.BaseURL
+	}
+
+	if cfg.Database == "" {
+		cfg.Database = ConfigFile.Database
+	}
+
+	if cfg.HTTPS == "" {
+		cfg.HTTPS = ConfigFile.HTTPS
+	}
+
 	log.Printf("Переменные конфигурации: %s\n", &cfg)
 
 	return cfg, err
+}
+
+func ReadConfigFile(filename string) (*Config, error) {
+	config := &Config{}
+
+	file, err := os.OpenFile(filename, os.O_RDONLY, 0664)
+	if err != nil {
+		return config, err
+	}
+	defer file.Close()
+
+	decoder := json.NewDecoder(file)
+
+	if err := decoder.Decode(&config); err != nil {
+		return config, err
+	}
+
+	return config, err
 }
