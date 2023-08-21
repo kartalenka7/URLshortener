@@ -84,9 +84,9 @@ func GetConfig() (Config, error) {
 		cfg.ConfigFile = cfgFlag.ConfigFile
 	}
 
-	ConfigFile, err := ReadConfigFile(cfg.ConfigFile)
+	ConfigFile, errReadFile := ReadConfigFile(cfg.ConfigFile)
 	if err != nil {
-		log.Println(err.Error())
+		log.Println(errReadFile.Error())
 	}
 
 	if cfg.Server == "" {
