@@ -85,7 +85,7 @@ func GetConfig() (Config, error) {
 	}
 
 	ConfigFile, errReadFile := ReadConfigFile(cfg.ConfigFile)
-	if err != nil {
+	if errReadFile != nil {
 		log.Println(errReadFile.Error())
 	}
 
@@ -114,6 +114,7 @@ func GetConfig() (Config, error) {
 	return cfg, err
 }
 
+// ReadConfigFile читает конфигурационный файл в формате json
 func ReadConfigFile(filename string) (*Config, error) {
 	config := &Config{}
 
