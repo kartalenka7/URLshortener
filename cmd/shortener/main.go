@@ -54,7 +54,7 @@ func main() {
 	// регистрируем перенаправление прерываний
 	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 	defer stop()
-	ctx, cancel := context.WithTimeout(ctx, time.Second*300)
+	ctx, cancel := context.WithTimeout(ctx, time.Minute*1)
 	defer cancel()
 
 	log.WithFields(logrus.Fields{"server": cfg.Server})
