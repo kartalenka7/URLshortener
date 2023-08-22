@@ -1,11 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/service"
@@ -50,7 +52,10 @@ func main() {
 	// ёмкости 1 для канала будет достаточно
 	sigint := make(chan os.Signal, 1)
 	// регистрируем перенаправление прерываний
-	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
+	defer stop()
+	ctx, cancel := context.WithTimeout(ctx, time.Second*300)
+	defer cancel()
 
 	log.WithFields(logrus.Fields{"server": cfg.Server})
 	if cfg.HTTPS == "" {
@@ -68,7 +73,12 @@ func main() {
 		// читаем из канала прерываний
 		// поскольку нужно прочитать только одно прерывание,
 		// можно обойтись без цикла
-		<-sigint
+		select {
+		case <-sigint:
+			fmt.Println("Syscall error")
+		case <-ctx.Done():
+			fmt.Println("Context exeeded")
+		}
 		// сообщаем основному потоку,
 		// что все сетевые соединения обработаны и закрыты
 		close(idleConnsClosed)
