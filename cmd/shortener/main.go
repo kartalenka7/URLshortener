@@ -7,7 +7,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/service"
@@ -56,23 +55,16 @@ func main() {
 	// ёмкости 1 для канала будет достаточно
 	sigint := make(chan os.Signal, 1)
 	// регистрируем перенаправление прерываний
-	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
-	defer stop()
-	ctx, cancel := context.WithTimeout(ctx, time.Minute*1)
-	defer cancel()
+	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	// запускаем горутину обработки пойманных прерываний
 	go func() {
 		// читаем из канала прерываний
 		// поскольку нужно прочитать только одно прерывание,
 		// можно обойтись без цикла
-		select {
-		case <-sigint:
-			fmt.Println("Syscall error")
-		case <-ctx.Done():
-			fmt.Println("Context exeeded")
-		}
-		if err := srv.Shutdown(ctx); err != nil {
+		<-sigint
+
+		if err := srv.Shutdown(context.Background()); err != nil {
 			// ошибки закрытия Listener
 			log.Printf("HTTP server Shutdown: %v", err)
 		}
