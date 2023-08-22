@@ -45,6 +45,10 @@ func main() {
 	service := service.New(cfg, storer, log)
 	router := handlers.NewRouter(service, log)
 
+	srv := http.Server{
+		Addr:    cfg.Server,
+		Handler: router}
+
 	// через этот канал сообщим основному потоку, что соединения закрыты
 	idleConnsClosed := make(chan struct{})
 	// канал для перенаправления прерываний
@@ -68,6 +72,10 @@ func main() {
 		case <-ctx.Done():
 			fmt.Println("Context exeeded")
 		}
+		if err := srv.Shutdown(ctx); err != nil {
+			// ошибки закрытия Listener
+			log.Printf("HTTP server Shutdown: %v", err)
+		}
 		// сообщаем основному потоку,
 		// что все сетевые соединения обработаны и закрыты
 		close(idleConnsClosed)
@@ -75,12 +83,14 @@ func main() {
 
 	log.WithFields(logrus.Fields{"server": cfg.Server})
 	if cfg.HTTPS == "" {
-		log.Fatal(http.ListenAndServe(cfg.Server, router))
+		//log.Fatal(http.ListenAndServe(cfg.Server, router))
+		log.Fatal(srv.ListenAndServe())
 	} else {
 		// включение HTTPS
 		err = utils.GenerateCertTSL(log)
 		if err == nil {
-			log.Fatal(http.ListenAndServeTLS(cfg.Server, `cert.pem`, `key.pem`, router))
+			//log.Fatal(http.ListenAndServeTLS(cfg.Server, `cert.pem`, `key.pem`, router))
+			log.Fatal(srv.ListenAndServeTLS(`cert.pm`, `key.pm`))
 		}
 	}
 
