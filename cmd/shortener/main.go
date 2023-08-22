@@ -57,6 +57,22 @@ func main() {
 	ctx, cancel := context.WithTimeout(ctx, time.Minute*1)
 	defer cancel()
 
+	// запускаем горутину обработки пойманных прерываний
+	go func() {
+		// читаем из канала прерываний
+		// поскольку нужно прочитать только одно прерывание,
+		// можно обойтись без цикла
+		select {
+		case <-sigint:
+			fmt.Println("Syscall error")
+		case <-ctx.Done():
+			fmt.Println("Context exeeded")
+		}
+		// сообщаем основному потоку,
+		// что все сетевые соединения обработаны и закрыты
+		close(idleConnsClosed)
+	}()
+
 	log.WithFields(logrus.Fields{"server": cfg.Server})
 	if cfg.HTTPS == "" {
 		log.Fatal(http.ListenAndServe(cfg.Server, router))
@@ -68,24 +84,6 @@ func main() {
 		}
 	}
 
-	// запускаем горутину обработки пойманных прерываний
-	go func() {
-		// читаем из канала прерываний
-		// поскольку нужно прочитать только одно прерывание,
-		// можно обойтись без цикла
-		select {
-		case <-sigint:
-			fmt.Println("Syscall error")
-			// сообщаем основному потоку,
-			// что все сетевые соединения обработаны и закрыты
-			close(idleConnsClosed)
-		case <-ctx.Done():
-			fmt.Println("Context exeeded")
-			// сообщаем основному потоку,
-			// что все сетевые соединения обработаны и закрыты
-			close(idleConnsClosed)
-		}
-	}()
 	// ждём завершения процедуры graceful shutdown
 	<-idleConnsClosed
 	// закрываем ресурсы перед выходом
