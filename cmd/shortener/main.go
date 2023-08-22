@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/service"
@@ -48,8 +49,6 @@ func main() {
 		Addr:    cfg.Server,
 		Handler: router}
 
-	// через этот канал сообщим основному потоку, что соединения закрыты
-	idleConnsClosed := make(chan struct{})
 	// канал для перенаправления прерываний
 	// поскольку нужно отловить всего одно прерывание,
 	// ёмкости 1 для канала будет достаточно
@@ -57,37 +56,37 @@ func main() {
 	// регистрируем перенаправление прерываний
 	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
-	// запускаем горутину обработки пойманных прерываний
 	go func() {
-		// читаем из канала прерываний
-		// поскольку нужно прочитать только одно прерывание,
-		// можно обойтись без цикла
-		<-sigint
-
-		if err := srv.Shutdown(context.Background()); err != nil {
-			// ошибки закрытия Listener
-			log.Printf("HTTP server Shutdown: %v", err)
+		log.WithFields(logrus.Fields{"server": cfg.Server})
+		if cfg.HTTPS == "" {
+			//log.Fatal(http.ListenAndServe(cfg.Server, router))
+			log.Fatal(srv.ListenAndServe())
+		} else {
+			// включение HTTPS
+			err = utils.GenerateCertTSL(log)
+			if err == nil {
+				//log.Fatal(http.ListenAndServeTLS(cfg.Server, `cert.pem`, `key.pem`, router))
+				log.Fatal(srv.ListenAndServeTLS(`cert.pm`, `key.pm`))
+			}
 		}
-		// сообщаем основному потоку,
-		// что все сетевые соединения обработаны и закрыты
-		close(idleConnsClosed)
 	}()
 
-	log.WithFields(logrus.Fields{"server": cfg.Server})
-	if cfg.HTTPS == "" {
-		//log.Fatal(http.ListenAndServe(cfg.Server, router))
-		log.Fatal(srv.ListenAndServe())
-	} else {
-		// включение HTTPS
-		err = utils.GenerateCertTSL(log)
-		if err == nil {
-			//log.Fatal(http.ListenAndServeTLS(cfg.Server, `cert.pem`, `key.pem`, router))
-			log.Fatal(srv.ListenAndServeTLS(`cert.pm`, `key.pm`))
-		}
+	// читаем из канала прерываний
+	// поскольку нужно прочитать только одно прерывание,
+	// можно обойтись без цикла
+	sig := <-sigint
+	log.Printf("Received signal: %v\n", sig)
+
+	ctx, cancel := context.WithTimeout(context.Background(), 1*time.Minute)
+	defer cancel()
+
+	if err := srv.Shutdown(ctx); err != nil {
+		// ошибки закрытия Listener
+		log.Printf("HTTP server Shutdown: %v", err)
 	}
 
-	// ждём завершения процедуры graceful shutdown
-	<-idleConnsClosed
+	//завершения процедуры graceful shutdown
+	log.Println("Server shutdown gracefully")
 	// закрываем ресурсы перед выходом
 	err = service.Close()
 	if err != nil {
