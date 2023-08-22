@@ -60,13 +60,17 @@ func main() {
 		log.WithFields(logrus.Fields{"server": cfg.Server})
 		if cfg.HTTPS == "" {
 			//log.Fatal(http.ListenAndServe(cfg.Server, router))
-			log.Fatal(srv.ListenAndServe())
+			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+				log.Fatalf("listen: %s\n", err)
+			}
 		} else {
 			// включение HTTPS
 			err = utils.GenerateCertTSL(log)
 			if err == nil {
 				//log.Fatal(http.ListenAndServeTLS(cfg.Server, `cert.pem`, `key.pem`, router))
-				log.Fatal(srv.ListenAndServeTLS(`cert.pm`, `key.pm`))
+				if err := srv.ListenAndServeTLS(`cert.pm`, `key.pm`); err != nil && err != http.ErrServerClosed {
+					log.Fatalf("listen: %s\n", err)
+				}
 			}
 		}
 	}()
