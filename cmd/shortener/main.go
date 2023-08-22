@@ -3,6 +3,9 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"example.com/shortener/internal/app/handlers"
 	"example.com/shortener/internal/app/service"
@@ -24,16 +27,7 @@ func main() {
 	var storer service.Storer
 	var err error
 
-	if buildVersion == "" {
-		buildVersion = "N/A"
-	}
-	if buildDate == "" {
-		buildDate = "N/A"
-	}
-	if buildCommit == "" {
-		buildCommit = "N/A"
-	}
-	fmt.Printf("Build version:%s\nBuild date:%s\nBuild commit:%s\n", buildVersion, buildDate, buildCommit)
+	showBuildData()
 
 	log := logger.InitLog()
 
@@ -47,8 +41,16 @@ func main() {
 	// создаем объект хранилища
 	storer = storage.New(cfg, log)
 	service := service.New(cfg, storer, log)
-
 	router := handlers.NewRouter(service, log)
+
+	// через этот канал сообщим основному потоку, что соединения закрыты
+	idleConnsClosed := make(chan struct{})
+	// канал для перенаправления прерываний
+	// поскольку нужно отловить всего одно прерывание,
+	// ёмкости 1 для канала будет достаточно
+	sigint := make(chan os.Signal, 1)
+	// регистрируем перенаправление прерываний
+	signal.Notify(sigint, syscall.SIGTERM, syscall.SIGINT, syscall.SIGQUIT)
 
 	log.WithFields(logrus.Fields{"server": cfg.Server})
 	if cfg.HTTPS == "" {
@@ -61,8 +63,36 @@ func main() {
 		}
 	}
 
+	// запускаем горутину обработки пойманных прерываний
+	go func() {
+		// читаем из канала прерываний
+		// поскольку нужно прочитать только одно прерывание,
+		// можно обойтись без цикла
+		<-sigint
+		// сообщаем основному потоку,
+		// что все сетевые соединения обработаны и закрыты
+		close(idleConnsClosed)
+	}()
+	// ждём завершения процедуры graceful shutdown
+	<-idleConnsClosed
+	// закрываем ресурсы перед выходом
 	err = service.Close()
 	if err != nil {
 		log.Fatal(err)
 	}
+}
+
+// showBuildData выводит версию, время и последний коммит текущей сборки
+func showBuildData() {
+	if buildVersion == "" {
+		buildVersion = "N/A"
+	}
+	if buildDate == "" {
+		buildDate = "N/A"
+	}
+	if buildCommit == "" {
+		buildCommit = "N/A"
+	}
+	fmt.Printf("Build version:%s\nBuild date:%s\nBuild commit:%s\n", buildVersion, buildDate, buildCommit)
+
 }
