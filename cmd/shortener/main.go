@@ -76,12 +76,15 @@ func main() {
 		select {
 		case <-sigint:
 			fmt.Println("Syscall error")
+			// сообщаем основному потоку,
+			// что все сетевые соединения обработаны и закрыты
+			close(idleConnsClosed)
 		case <-ctx.Done():
 			fmt.Println("Context exeeded")
+			// сообщаем основному потоку,
+			// что все сетевые соединения обработаны и закрыты
+			close(idleConnsClosed)
 		}
-		// сообщаем основному потоку,
-		// что все сетевые соединения обработаны и закрыты
-		close(idleConnsClosed)
 	}()
 	// ждём завершения процедуры graceful shutdown
 	<-idleConnsClosed
