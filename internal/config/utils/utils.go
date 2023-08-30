@@ -142,7 +142,8 @@ func GenerateCertTSL(log *logrus.Logger) error {
 	// создаём новый приватный RSA-ключ длиной 4096 бит
 	privateKey, err := rsa.GenerateKey(crypto.Reader, 4096)
 	if err != nil {
-		log.Fatal(err.Error())
+		log.Error(err.Error())
+		return err
 	}
 
 	// создаём сертификат x.509
