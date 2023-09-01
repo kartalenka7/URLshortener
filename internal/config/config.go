@@ -60,7 +60,7 @@ func GetConfig() (Config, error) {
 	flag.StringVar(&cfgFlag.ConfigFile, "c", configFile, "Way to config file")
 	flag.Parse()
 
-	log.Printf("Флаги командной строки: %s\n", cfgFlag)
+	log.Printf("Флаги командной строки: %v\n", cfgFlag)
 
 	if cfg.Server == "" || cfg.Server == localAddr {
 		cfg.Server = cfgFlag.Server
@@ -115,7 +115,7 @@ func GetConfig() (Config, error) {
 		cfg.Subnet = ConfigFile.Subnet
 	}
 
-	log.Printf("Переменные конфигурации: %s\n", &cfg)
+	log.Printf("Переменные конфигурации: %v\n", &cfg)
 
 	return cfg, err
 }
