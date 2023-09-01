@@ -78,7 +78,7 @@ func GetConfig() (Config, error) {
 		cfg.Database = cfgFlag.Database
 	}
 
-	if cfg.HTTPS == false {
+	if !cfg.HTTPS {
 		cfg.HTTPS = cfgFlag.HTTPS
 	}
 
@@ -107,7 +107,7 @@ func GetConfig() (Config, error) {
 		cfg.Database = ConfigFile.Database
 	}
 
-	if cfg.HTTPS == false {
+	if !cfg.HTTPS {
 		cfg.HTTPS = ConfigFile.HTTPS
 	}
 
