@@ -42,4 +42,5 @@ var (
 	ErrLinkNotFound     = errors.New("link is not found")
 	ErrLinkDeleted      = errors.New("link has been deleted")
 	ErrNotTrustedSubnet = errors.New("not trusted subnet")
+	ErrEmptySubnet      = errors.New("empty subnet")
 )

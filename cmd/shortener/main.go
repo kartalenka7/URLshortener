@@ -58,7 +58,7 @@ func main() {
 
 	go func() {
 		log.WithFields(logrus.Fields{"server": cfg.Server})
-		if cfg.HTTPS == false {
+		if !cfg.HTTPS {
 			//log.Fatal(http.ListenAndServe(cfg.Server, router))
 			if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 				log.Fatalf("listen: %s\n", err)

@@ -169,7 +169,7 @@ func (s Service) Close() error {
 // GetStats проверяет что ip адрес входит в доверенную подсеть
 func (s Service) CheckIPMask(ctx context.Context, ip net.IP) (models.Stats, error) {
 	if s.Config.Subnet == "" {
-		// доступ запрещен?
+		return models.Stats{}, models.ErrEmptySubnet
 	}
 
 	_, trustedSubnet, err := net.ParseCIDR(s.Config.Subnet)

@@ -344,6 +344,7 @@ func (s *Server) GetStats(rw http.ResponseWriter, req *http.Request) {
 			s.log.Info("IP не входит в доверенную подсеть")
 			rw.WriteHeader(http.StatusForbidden)
 		}
+		rw.WriteHeader(http.StatusInternalServerError)
 		return
 	}
 
