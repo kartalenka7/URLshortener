@@ -182,3 +182,8 @@ func (s MemoryStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUs
 	}
 	s.WriteInFile()
 }
+
+// заглушка
+func (s MemoryStorage) GetStats(ctx context.Context) models.Stats {
+	return models.Stats{}
+}

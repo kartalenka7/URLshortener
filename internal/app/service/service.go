@@ -4,6 +4,7 @@ package service
 
 import (
 	"context"
+	"net"
 	"strings"
 	"sync"
 	"time"
@@ -26,6 +27,7 @@ type Storer interface {
 	BatchDelete(ctx context.Context, sTokens []models.TokenUser)
 	Close() error
 	GetStorageLen() int
+	GetStats(ctx context.Context) models.Stats
 }
 
 var once sync.Once
@@ -162,4 +164,24 @@ func (s Service) Close() error {
 	close(s.OutCh)
 	close(s.userCh)
 	return s.storage.Close()
+}
+
+// GetStats проверяет что ip адрес входит в доверенную подсеть
+func (s Service) CheckIPMask(ctx context.Context, ip net.IP) (models.Stats, error) {
+	if s.Config.Subnet == "" {
+		// доступ запрещен?
+	}
+
+	_, trustedSubnet, err := net.ParseCIDR(s.Config.Subnet)
+	if err != nil {
+		s.log.Error(err.Error())
+		return models.Stats{}, err
+	}
+
+	if !trustedSubnet.Contains(ip) {
+		return models.Stats{}, models.ErrNotTrustedSubnet
+	}
+
+	// если все ок с подсетью идем в хранилище
+	return s.storage.GetStats(ctx), nil
 }

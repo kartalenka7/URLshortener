@@ -17,8 +17,9 @@ type Config struct {
 	Server     string `env:"SERVER_ADDRESS" envDefault:"localhost:8080" json:"server_address"`
 	File       string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	Database   string `env:"DATABASE_DSN" json:"database_dsn"`
-	HTTPS      string `env:"ENABLE_HTTPS" json:"enable_https"`
+	HTTPS      bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	ConfigFile string `env:"CONFIG"`
+	Subnet     string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 // Значения переменных конфигурации по умолчанию
@@ -27,8 +28,9 @@ var (
 	filename  = "link.log"
 	baseURL   = "http://localhost:8080/"
 	//database  = "postgres://habruser:habr@localhost:5432/habrdb"
-	database  = "user=habruser password=habr host=localhost port=5432 dbname=habrdb sslmode=disable"
-	BatchSize = 10
+	database   = "user=habruser password=habr host=localhost port=5432 dbname=habrdb sslmode=disable"
+	BatchSize  = 10
+	configFile = "config.json"
 )
 
 // GetConfig возвращает флаги конфигурации
@@ -53,9 +55,9 @@ func GetConfig() (Config, error) {
 
 	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
 
-	flag.StringVar(&cfgFlag.HTTPS, "s", "", "Enable HTTPS")
+	flag.BoolVar(&cfgFlag.HTTPS, "s", false, "Enable HTTPS")
 
-	flag.StringVar(&cfgFlag.ConfigFile, "c", "", "Enable HTTPS")
+	flag.StringVar(&cfgFlag.ConfigFile, "c", configFile, "Way to config file")
 	flag.Parse()
 
 	log.Printf("Флаги командной строки: %s\n", cfgFlag)
@@ -76,7 +78,7 @@ func GetConfig() (Config, error) {
 		cfg.Database = cfgFlag.Database
 	}
 
-	if cfg.HTTPS == "" {
+	if cfg.HTTPS == false {
 		cfg.HTTPS = cfgFlag.HTTPS
 	}
 
@@ -105,8 +107,12 @@ func GetConfig() (Config, error) {
 		cfg.Database = ConfigFile.Database
 	}
 
-	if cfg.HTTPS == "" {
+	if cfg.HTTPS == false {
 		cfg.HTTPS = ConfigFile.HTTPS
+	}
+
+	if cfg.Subnet == "" {
+		cfg.Subnet = ConfigFile.Subnet
 	}
 
 	log.Printf("Переменные конфигурации: %s\n", &cfg)
