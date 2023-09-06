@@ -57,7 +57,7 @@ func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 }
 
 // ShortenURL - обработчик для запроса POST /
-// возвращает скоращенный токен в теле ответа
+// возвращает сокращенный токен в теле ответа
 func (s *Server) ShortenURL(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
 	var errToken error

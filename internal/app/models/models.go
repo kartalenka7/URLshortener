@@ -36,6 +36,8 @@ type Stats struct {
 	Users int `json:"users"`
 }
 
+
+
 // Сообщения об ошибках
 var (
 	ErrorAlreadyExist   = errors.New("already exist")

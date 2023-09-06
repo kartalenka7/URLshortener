@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package grpc;
+
+option go_package = "proto/grpc";
+
+message ShortenURLRequest {
+    string longURL = 1;
+}
+
+message ShortenURLResponse {
+    string token = 1;
+    string error = 2;
+}
+
+message GetFullURLRequest {
+    string token = 1;
+}
+
+message GetFullURLResponse {
+    string longURL = 1 ;
+    string error = 2;
+}
+
+message GetUserURLsRequest {
+    string user = 1;
+}
+
+message UserURLs {
+	string ShortURL = 1;
+	string LongURL = 2;
+}
+
+message GetUserURLsResponse {
+    repeated UserURLs urls = 1;
+    string error = 2;
+}
+
+message DeleteURLsRequest {
+    repeated string token = 1;
+    string user = 2;
+}
+
+message DeleteURLsResponse {
+    string error = 1;
+}
+
+message BatchReq {
+    string id = 1;
+    string LongURL = 2;
+}
+
+message ShortenBatchRequest {
+    repeated BatchReq batch = 1;
+}
+
+message BatchResp {
+    string id = 1;
+    string ShortURL = 2;
+}
+
+message ShortenBatchResponse {
+    repeated BatchResp batch = 1;
+}
+
+service Handlers {
+    rpc ShortenURL(ShortenURLRequest) returns(ShortenURLResponse);
+    rpc GetFullURL(GetFullURLRequest) returns(GetFullURLResponse);
+    rpc GetUserURLs(GetUserURLsRequest) returns(GetUserURLsResponse);
+    rpc DeleteURLs(DeleteURLsRequest) returns(DeleteURLsResponse);
+    rpc ShortenBatch(ShortenBatchRequest) returns(ShortenBatchResponse);
+}

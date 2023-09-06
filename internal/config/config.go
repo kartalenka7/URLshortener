@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
@@ -37,82 +36,36 @@ var (
 func GetConfig() (Config, error) {
 	var cfg Config
 	var cfgFlag Config
-	// Парсим переменные окружения
-	log.Println("Parse")
-	err := env.Parse(&cfg)
+
+	// Переменные конфигурации из json файла
+	cfg, err := ReadConfigFile(cfg.ConfigFile)
 	if err != nil {
-		fmt.Printf("ошибка %s", err.Error())
-		return cfg, err
+		log.Println(err.Error())
 	}
 
-	log.Println(cfgFlag)
+	log.Printf("Переменные конфигурации после чтения из файла %v\n", cfgFlag)
+
+	// Парсим флаги командной строки
 	// флаг -a, отвечающий за адрес запуска HTTP-сервера
-	flag.StringVar(&cfgFlag.Server, "a", localAddr, "HTTP server address")
+	flag.StringVar(&cfg.Server, "a", localAddr, "HTTP server address")
 	// флаг -f, отвечающий за путь до файла с сокращёнными URL
-	flag.StringVar(&cfgFlag.File, "f", filename, "File name")
+	flag.StringVar(&cfg.File, "f", filename, "File name")
 	// флаг -b отвечающий за базовый адрес результирующего сокращённого URL
-	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
+	flag.StringVar(&cfg.BaseURL, "b", baseURL, "Base URL")
 
-	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
+	flag.StringVar(&cfg.Database, "d", database, "Database connections")
 
-	flag.BoolVar(&cfgFlag.HTTPS, "s", false, "Enable HTTPS")
+	flag.BoolVar(&cfg.HTTPS, "s", false, "Enable HTTPS")
 
-	flag.StringVar(&cfgFlag.ConfigFile, "c", configFile, "Way to config file")
+	flag.StringVar(&cfg.ConfigFile, "c", configFile, "Way to config file")
 	flag.Parse()
 
-	log.Printf("Флаги командной строки: %v\n", cfgFlag)
+	log.Printf("Переменные конфигурации после парсинга из командной строки: %v\n", cfg)
 
-	if cfg.Server == "" || cfg.Server == localAddr {
-		cfg.Server = cfgFlag.Server
-	}
-
-	if cfg.File == "" || cfg.File == filename {
-		cfg.File = cfgFlag.File
-	}
-
-	if cfg.BaseURL == "" || cfg.BaseURL == baseURL {
-		cfg.BaseURL = cfgFlag.BaseURL
-	}
-
-	if cfg.Database == "" || cfg.Database == database {
-		cfg.Database = cfgFlag.Database
-	}
-
-	if !cfg.HTTPS {
-		cfg.HTTPS = cfgFlag.HTTPS
-	}
-
-	if cfg.ConfigFile == "" {
-		cfg.ConfigFile = cfgFlag.ConfigFile
-	}
-
-	ConfigFile, errReadFile := ReadConfigFile(cfg.ConfigFile)
-	if errReadFile != nil {
-		log.Println(errReadFile.Error())
-	}
-
-	if cfg.Server == "" {
-		cfg.Server = ConfigFile.Server
-	}
-
-	if cfg.File == "" {
-		cfg.File = ConfigFile.File
-	}
-
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = ConfigFile.BaseURL
-	}
-
-	if cfg.Database == "" {
-		cfg.Database = ConfigFile.Database
-	}
-
-	if !cfg.HTTPS {
-		cfg.HTTPS = ConfigFile.HTTPS
-	}
-
-	if cfg.Subnet == "" {
-		cfg.Subnet = ConfigFile.Subnet
+	// Парсим переменные окружения
+	err = env.Parse(&cfg)
+	if err != nil {
+		log.Printf("ошибка %s", err.Error())
 	}
 
 	log.Printf("Переменные конфигурации: %v\n", &cfg)
@@ -121,8 +74,8 @@ func GetConfig() (Config, error) {
 }
 
 // ReadConfigFile читает конфигурационный файл в формате json
-func ReadConfigFile(filename string) (*Config, error) {
-	config := &Config{}
+func ReadConfigFile(filename string) (Config, error) {
+	config := Config{}
 
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0664)
 	if err != nil {
