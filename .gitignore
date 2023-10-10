@@ -15,7 +15,6 @@
 
 # Binaries
 cmd/shortener/main
-cmd/shortener/shortener
 
 #logs
 cmd/shortener/link.log
