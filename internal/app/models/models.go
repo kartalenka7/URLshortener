@@ -30,9 +30,19 @@ type TokenUser struct {
 	User  string
 }
 
+// Структура struct для общего числа пользователей и скоращенных URL
+type Stats struct {
+	URLs  int `json:"urls"`
+	Users int `json:"users"`
+}
+
+
+
 // Сообщения об ошибках
 var (
-	ErrorAlreadyExist = errors.New("already exist")
-	ErrLinkNotFound   = errors.New("link is not found")
-	ErrLinkDeleted    = errors.New("link has been deleted")
+	ErrorAlreadyExist   = errors.New("already exist")
+	ErrLinkNotFound     = errors.New("link is not found")
+	ErrLinkDeleted      = errors.New("link has been deleted")
+	ErrNotTrustedSubnet = errors.New("not trusted subnet")
+	ErrEmptySubnet      = errors.New("empty subnet")
 )

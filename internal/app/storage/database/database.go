@@ -42,6 +42,8 @@ var (
 	selectByUser   = `SELECT short_url, long_url FROM urlsDBTable WHERE cookie = $1`
 	selectLongURL  = `SELECT long_url, deleted FROM urlsDBTable WHERE short_url = $1`
 	deleteSQL      = `UPDATE urlsDBTable SET deleted = 'true' WHERE short_url = $1 AND cookie = $2`
+	tokensCount    = `SELECT COUNT(*) FROM urlsDBTable`
+	differentUsers = `SELECT DISTINCT cookie FROM urlsDBTable`
 	pgOnce         sync.Once
 	storage        dbStorage
 )
@@ -313,4 +315,29 @@ func (s *dbStorage) SelectLink(ctx context.Context, shortURL string) (string, er
 func (s *dbStorage) Close() error {
 	s.pgxPool.Close()
 	return nil
+}
+
+// GetStats возвращает данные по общему числу
+// пользователей и сокращенных URL из бд
+func (s *dbStorage) GetStats(ctx context.Context) models.Stats {
+	var stats models.Stats
+	row := s.pgxPool.QueryRow(ctx, tokensCount)
+
+	if err := row.Scan(&stats.URLs); err != nil {
+		s.log.Error(err.Error())
+		return models.Stats{}
+	}
+
+	rowsUsers, err := s.pgxPool.Query(ctx, differentUsers)
+	if err != nil {
+		s.log.Error(err.Error())
+		return models.Stats{}
+	}
+
+	var users int
+	for rowsUsers.Next() {
+		users += 1
+	}
+	stats.Users = users
+	return stats
 }

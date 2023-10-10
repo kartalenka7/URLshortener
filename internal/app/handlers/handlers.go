@@ -10,6 +10,7 @@ import (
 	"fmt"
 	"io"
 	"log"
+	"net"
 	"net/http"
 	"strings"
 
@@ -56,7 +57,7 @@ func (s *Server) DeleteURLs(rw http.ResponseWriter, req *http.Request) {
 }
 
 // ShortenURL - обработчик для запроса POST /
-// возвращает скоращенный токен в теле ответа
+// возвращает сокращенный токен в теле ответа
 func (s *Server) ShortenURL(rw http.ResponseWriter, req *http.Request) {
 	var gToken string
 	var errToken error
@@ -317,10 +318,42 @@ func (s *Server) GetUserURLs(rw http.ResponseWriter, req *http.Request) {
 
 // PingConnection проверяет соединение с БД
 func (s *Server) PingConnection(rw http.ResponseWriter, req *http.Request) {
-	log.Println("Ping")
+	s.log.Info("Ping")
 	if s.service.Ping(req.Context()) != nil {
 		rw.WriteHeader(http.StatusInternalServerError)
 	} else {
 		rw.WriteHeader(http.StatusOK)
 	}
+}
+
+// GetStats проверяет что ip клиента входит в доверенную подсеть
+// и возвращает статистику в формате JSON
+func (s *Server) GetStats(rw http.ResponseWriter, req *http.Request) {
+	s.log.Info("Get stats")
+
+	ipstr := req.Header.Get("X-Real-IP")
+
+	ip := net.ParseIP(ipstr)
+	if ip == nil {
+		rw.WriteHeader(http.StatusBadRequest)
+	}
+
+	stats, err := s.service.CheckIPMask(req.Context(), ip)
+	if err != nil {
+		if errors.Is(err, models.ErrNotTrustedSubnet) {
+			s.log.Info("IP не входит в доверенную подсеть")
+			rw.WriteHeader(http.StatusForbidden)
+		}
+		rw.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	buf := bytes.NewBuffer([]byte{})
+	if err := json.NewEncoder(buf).Encode(stats); err != nil {
+		s.log.Error(err.Error())
+		return
+	}
+	rw.WriteHeader(http.StatusOK)
+	fmt.Fprint(rw, buf)
+
 }

@@ -2,7 +2,6 @@ package config
 
 import (
 	"encoding/json"
-	"fmt"
 	"log"
 	"os"
 
@@ -17,8 +16,9 @@ type Config struct {
 	Server     string `env:"SERVER_ADDRESS" envDefault:"localhost:8080" json:"server_address"`
 	File       string `env:"FILE_STORAGE_PATH" json:"file_storage_path"`
 	Database   string `env:"DATABASE_DSN" json:"database_dsn"`
-	HTTPS      string `env:"ENABLE_HTTPS" json:"enable_https"`
+	HTTPS      bool   `env:"ENABLE_HTTPS" json:"enable_https"`
 	ConfigFile string `env:"CONFIG"`
+	Subnet     string `env:"TRUSTED_SUBNET" json:"trusted_subnet"`
 }
 
 // Значения переменных конфигурации по умолчанию
@@ -27,96 +27,55 @@ var (
 	filename  = "link.log"
 	baseURL   = "http://localhost:8080/"
 	//database  = "postgres://habruser:habr@localhost:5432/habrdb"
-	database  = "user=habruser password=habr host=localhost port=5432 dbname=habrdb sslmode=disable"
-	BatchSize = 10
+	database   = "user=habruser password=habr host=localhost port=5432 dbname=habrdb sslmode=disable"
+	BatchSize  = 10
+	configFile = "config.json"
 )
 
 // GetConfig возвращает флаги конфигурации
 func GetConfig() (Config, error) {
 	var cfg Config
 	var cfgFlag Config
-	// Парсим переменные окружения
-	log.Println("Parse")
-	err := env.Parse(&cfg)
+
+	// Переменные конфигурации из json файла
+	cfg, err := ReadConfigFile(cfg.ConfigFile)
 	if err != nil {
-		fmt.Printf("ошибка %s", err.Error())
-		return cfg, err
+		log.Println(err.Error())
 	}
 
-	log.Println(cfgFlag)
+	log.Printf("Переменные конфигурации после чтения из файла %v\n", cfgFlag)
+
+	// Парсим флаги командной строки
 	// флаг -a, отвечающий за адрес запуска HTTP-сервера
-	flag.StringVar(&cfgFlag.Server, "a", localAddr, "HTTP server address")
+	flag.StringVar(&cfg.Server, "a", localAddr, "HTTP server address")
 	// флаг -f, отвечающий за путь до файла с сокращёнными URL
-	flag.StringVar(&cfgFlag.File, "f", filename, "File name")
+	flag.StringVar(&cfg.File, "f", filename, "File name")
 	// флаг -b отвечающий за базовый адрес результирующего сокращённого URL
-	flag.StringVar(&cfgFlag.BaseURL, "b", baseURL, "Base URL")
+	flag.StringVar(&cfg.BaseURL, "b", baseURL, "Base URL")
 
-	flag.StringVar(&cfgFlag.Database, "d", database, "Database connections")
+	flag.StringVar(&cfg.Database, "d", database, "Database connections")
 
-	flag.StringVar(&cfgFlag.HTTPS, "s", "", "Enable HTTPS")
+	flag.BoolVar(&cfg.HTTPS, "s", false, "Enable HTTPS")
 
-	flag.StringVar(&cfgFlag.ConfigFile, "c", "", "Enable HTTPS")
+	flag.StringVar(&cfg.ConfigFile, "c", configFile, "Way to config file")
 	flag.Parse()
 
-	log.Printf("Флаги командной строки: %s\n", cfgFlag)
+	log.Printf("Переменные конфигурации после парсинга из командной строки: %v\n", cfg)
 
-	if cfg.Server == "" || cfg.Server == localAddr {
-		cfg.Server = cfgFlag.Server
+	// Парсим переменные окружения
+	err = env.Parse(&cfg)
+	if err != nil {
+		log.Printf("ошибка %s", err.Error())
 	}
 
-	if cfg.File == "" || cfg.File == filename {
-		cfg.File = cfgFlag.File
-	}
-
-	if cfg.BaseURL == "" || cfg.BaseURL == baseURL {
-		cfg.BaseURL = cfgFlag.BaseURL
-	}
-
-	if cfg.Database == "" || cfg.Database == database {
-		cfg.Database = cfgFlag.Database
-	}
-
-	if cfg.HTTPS == "" {
-		cfg.HTTPS = cfgFlag.HTTPS
-	}
-
-	if cfg.ConfigFile == "" {
-		cfg.ConfigFile = cfgFlag.ConfigFile
-	}
-
-	ConfigFile, errReadFile := ReadConfigFile(cfg.ConfigFile)
-	if errReadFile != nil {
-		log.Println(errReadFile.Error())
-	}
-
-	if cfg.Server == "" {
-		cfg.Server = ConfigFile.Server
-	}
-
-	if cfg.File == "" {
-		cfg.File = ConfigFile.File
-	}
-
-	if cfg.BaseURL == "" {
-		cfg.BaseURL = ConfigFile.BaseURL
-	}
-
-	if cfg.Database == "" {
-		cfg.Database = ConfigFile.Database
-	}
-
-	if cfg.HTTPS == "" {
-		cfg.HTTPS = ConfigFile.HTTPS
-	}
-
-	log.Printf("Переменные конфигурации: %s\n", &cfg)
+	log.Printf("Переменные конфигурации: %v\n", &cfg)
 
 	return cfg, err
 }
 
 // ReadConfigFile читает конфигурационный файл в формате json
-func ReadConfigFile(filename string) (*Config, error) {
-	config := &Config{}
+func ReadConfigFile(filename string) (Config, error) {
+	config := Config{}
 
 	file, err := os.OpenFile(filename, os.O_RDONLY, 0664)
 	if err != nil {

@@ -44,6 +44,8 @@ func NewRouter(service *service.Service, log *logrus.Logger) chi.Router {
 		r.Post("/api/shorten", serv.shortenJSON)
 		// все URL пользователя, которые он сокращал
 		r.Get("/api/user/urls", serv.GetUserURLs)
+		// возвращает общее число сокращенных URL и пользователей
+		r.Get("/api/internal/stats", serv.GetStats)
 		// проверка соединения с бд
 		r.Get("/ping", serv.PingConnection)
 		// получение полного URL по сокращенному
