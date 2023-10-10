@@ -96,9 +96,11 @@ func main() {
 	pb.RegisterHandlersServer(server, pb.NewGrpcHandlers(service))
 	log.Info("gRPC server started")
 
-	if err := server.Serve(listen); err != nil {
-		log.Fatalf("listen: %v\n", err)
-	}
+	go func() {
+		if err := server.Serve(listen); err != nil {
+			log.Fatalf("listen: %v\n", err)
+		}
+	}()
 
 	// читаем из канала прерываний
 	// поскольку нужно прочитать только одно прерывание,
