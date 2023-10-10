@@ -171,16 +171,23 @@ func (s MemoryStorage) WriteInFile() {
 
 // BatchDelete ставит метки удаления на строки из мапы и записывает в файл
 func (s MemoryStorage) BatchDelete(ctx context.Context, sTokens []models.TokenUser) {
-	s.log.Info("Batch delete для in-memory")
 	s.ReadFromFile()
+	var flagDeleted bool
 	for _, v := range sTokens {
 		user, ok := s.cookiesMap[v.Token]
 		if user != v.User || !ok {
 			continue
 		}
+		flag, ok := s.deletedMap[v.Token]
+		if flag || !ok {
+			continue
+		}
 		s.deletedMap[v.Token] = true
+		flagDeleted = true
 	}
-	s.WriteInFile()
+	if flagDeleted {
+		s.WriteInFile()
+	}
 }
 
 // заглушка
